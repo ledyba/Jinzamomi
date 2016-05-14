@@ -27,6 +27,9 @@ data Node =
   | Declare [Text]
   | Let Node Node
   | New Node [Node]
+  | Bin Node Text Node
+  | PreUni Text Node
+  | PostUni Node Text
   deriving (Ord,Eq,Show)
 
 nextIndent indent = T.concat ["  ", indent]
@@ -69,7 +72,8 @@ compile' indent (Try node@(Block _) var catch_@(Block _)) =
     ctx "node" = compileBlock indent node
     ctx "var" = var
     ctx "catch" = compileBlock indent catch_
-compile' indent try@Try{} = error ("Try expects blocks, but got: \n  "++show try)
+
+compile' indent (Try node var catch_) = compile' indent (Try (Block [node]) var (Block [catch_]))
 --
 compile' indent (Switch value nodes def) =
   TL.toStrict $ substitute (join [
@@ -158,6 +162,15 @@ compile' indent (Declare names) =
 --
 compile' indent (Let node1 node2) =
     T.concat [indent, compile' "" node1, " = (", compile' "" node1,")"]
+--
+compile' indent (Bin node1 op node2) =
+    T.concat [indent, compile' "" node1, " ", op, " ", compile' "" node2]
+--
+compile' indent (PreUni op node) =
+    T.concat [indent, op, "(", compile' "" node,")"]
+--
+compile' indent (PostUni node op) =
+    T.concat [indent, "(", compile' "" node,")",op]
 --
 compile' indent (New constructor args) =
     T.concat [indent, "new (", compile' "" constructor, ")(",T.intercalate ", " (fmap (compile' "") args),")"]
