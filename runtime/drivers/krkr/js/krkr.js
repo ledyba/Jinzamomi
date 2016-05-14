@@ -1,6 +1,5 @@
-uzume.krkr = (function(){
-  var krkr = {
-  };
+uzume.krkr = (function() {
+  var krkr = {};
   /**
    * main function
    * @param {string} path - project path
