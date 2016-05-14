@@ -25,7 +25,7 @@ data Node =
   | This
   | Var Text
   | Declare [Text]
-  | Let Node Node
+  | Assign Node Node
   | Call Node [Node]
   | New Node [Node]
   | Bin Node Text Node
@@ -34,9 +34,22 @@ data Node =
   | Undefined
   | Null
   | Str Text
+  | Array [Node]
+  | Nop
+  | Raw Text
   deriving (Ord,Eq,Show)
 
 nextIndent indent = T.concat ["  ", indent]
+
+jsEscape :: Text -> Text
+jsEscape s = T.concat ["\"",esc s,"\""]
+  where
+    esc str = T.replace "\"" "\\\"" $
+              T.replace "'" "\\'" $
+              T.replace "\n" "\\n" $
+              T.replace "\r" "\\r" $
+              T.replace "\2029" "\\u2029" $
+              T.replace "\\" "\\\\" str
 
 compile :: Node -> Text
 compile = compileBlock ""
@@ -54,6 +67,7 @@ join = T.intercalate "\n"
 
 compile' :: Text -> Node -> Text
 --
+compile' indent (Block []) = indent `T.append` "{}"
 compile' indent (Block nodes) =
   TL.toStrict $ substitute (join [
     "${indent}{",
@@ -155,18 +169,25 @@ compile' indent (Function args body) =
 compile' indent Undefined =
     T.concat [indent,"(undefiend)"]
 --
+compile' indent Nop = ""
+--
 compile' indent Null =
     T.concat [indent,"(null)"]
 --
 compile' indent (Str str) =
-    -- FIXME: Encode.
-    T.concat [indent,"\"", T.replace "\"" "\\\"" str,"\""]
+    T.concat [indent, jsEscape str]
+--
+compile' indent (Raw str) =
+    T.concat [indent, str]
+--
+compile' indent (Array nodes) =
+    T.concat [indent,"[", T.intercalate ", " $ fmap (compile' "") nodes, "]"]
 --
 compile' indent (Return value) =
     T.concat [indent,"return (",compile' "" value,")"]
 --
 compile' indent (Dot node attr) =
-    T.concat [indent,compile' "" node, ".", attr]
+    T.concat [indent,compile' "" node, "[", jsEscape attr ,"]"]
 --
 compile' indent (Var name) =
     T.concat [indent,name]
@@ -174,7 +195,7 @@ compile' indent (Var name) =
 compile' indent (Declare names) =
     T.concat [indent, "var ", T.intercalate "," names]
 --
-compile' indent (Let node1 node2) =
+compile' indent (Assign node1 node2) =
     T.concat [indent, compile' "" node1, " = (", compile' "" node2,")"]
 --
 compile' indent (Bin node1 op node2) =

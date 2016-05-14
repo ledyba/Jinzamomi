@@ -1,4 +1,4 @@
-var System = (function() {
+uzume.krkr.global.System = (function() {
   var System = {
     /** @type {function[]} */
     continuousHandlers_: [],
