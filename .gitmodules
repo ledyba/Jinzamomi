@@ -1,0 +1,3 @@
+[submodule "ext/kag3"]
+	path = ext/kag3
+	url = https://github.com/krkrz/kag3.git
