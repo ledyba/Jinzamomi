@@ -10,3 +10,4 @@ spec =
     it "value test" $ do
       compile (Var "test") `shouldBe` "test;"
       compile (Dot (Var "test") "value") `shouldBe` "test.value;"
+      compile (Block [Var "test"]) `shouldBe` "{\n  test;\n}"
