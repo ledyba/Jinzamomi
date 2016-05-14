@@ -26,6 +26,7 @@ data Node =
   | Var Text
   | Declare [Text]
   | Let Node Node
+  | New Node [Node]
   deriving (Ord,Eq,Show)
 
 nextIndent indent = T.concat ["  ", indent]
@@ -158,4 +159,6 @@ compile' indent (Declare names) =
 compile' indent (Let node1 node2) =
     T.concat [indent, compile' "" node1, " = (", compile' "" node1,")"]
 --
+compile' indent (New constructor args) =
+    T.concat [indent, "new (", compile' "" constructor, ")(",T.intercalate ", " (fmap (compile' "") args),")"]
 -- compile' _ node = error $ "Please implement compile' for " ++ show node
