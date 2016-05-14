@@ -17,7 +17,148 @@ ns.System = {
   /**
    * @type {Object.<string, string>}
    */
-  args_: {}
+  args_: {},
+  /**
+   * @return {string} ユーザのホームディレクトリのパス
+   */
+  get appDefaultPath() {
+    log.warn("appDefaultPath");
+    return "";
+  },
+  /**
+   * @return {string} データ保存場所のパス
+   */
+  get dataPath() {
+    log.warn("dataPath");
+    return "";
+  },
+  /**
+   * @return {number} デスクトップ高さ
+   */
+  get desktopHeight() {
+    return 1080;
+  },
+  /**
+   * @return {number} デスクトップ左端位置
+   */
+  get desktopLeft() {
+    return 0;
+  },
+  /**
+   * @return {number} デスクトップ上端位置
+   */
+  get desktopTop() {
+    return 0;
+  },
+  /**
+   * @return {number} デスクトップ幅
+   */
+  get desktopWidth() {
+    return 1920;
+  },
+  /**
+   * @return {number} 描画に使用するスレッドの数
+   */
+  get drawThreadNum () {
+    return 1;
+  },
+  /**
+   *イベント配信が停止されているかどうか
+   * @type {boolean}
+   */
+  eventDisabled: false,
+  /**
+   *イベント配信が停止されているかどうか
+   * @type {boolean}
+   */
+  eventDisabled: false,
+  /**
+   * 捕捉されなかった例外のためのハンドラ関数
+   * @type {function}
+   */
+  exceptionHandler: funtion () {},
+  /**
+   * @return {string} 吉里吉里本体のパス
+   */
+  get exeName() {
+    log.warn("exeName");
+    return "krkr.exe";
+  },
+  /**
+   * @return {string} 吉里吉里本体のあるフォルダのパス
+   */
+  get exePath() {
+    log.warn("exePath");
+    return "";
+  },
+  /**
+   * メインウィンドウが閉じたときに終了するかどうか
+   * @type {boolean}
+   */
+  exitOnWindowClose: true,
+  /**
+   * 画像キャッシュ制限
+   * @type {number}
+   */
+  graphicCacheLimit: 0,
+  /**
+   * アプリケーションがアクティブになったとき
+   * @type {function}
+   */
+  onActivate: funtion() {},
+   /**
+    * アプリケーションが非アクティブになったとき
+    * @type {function}
+    */
+  onDeactivate: funtion() {},
+  /**
+   * @return {string} OS 名
+   */
+  get osName() {
+    return "html5";
+  },
+  /**
+   * @return {string} platformName
+   */
+  get platformName() {
+    return "uzume";
+  },
+  /**
+   * @return {string} マイドキュメントのパス
+   */
+  get personalPath() {
+    log.warn("personalPath");
+    return "";
+  },
+  /**
+   * @return {number} 画面高さ
+   */
+  get screenHeight() {
+    return 0;
+  },
+  /**
+   * @return {number} 画面幅
+   */
+  get screenWidth() {
+    return 0;
+  },
+  /**
+   * タイトル
+   * @type {string}
+   */
+  title: "krkr",
+  /**
+   * @return {string} versionInformation
+   */
+  get versionInformation() {
+    return "Uzume 1.0";
+  },
+  /**
+   * @return {string} versionString
+   */
+  get versionString() {
+    return "1.0";
+  },
 };
  /**
   * Continuous ハンドラの追加
