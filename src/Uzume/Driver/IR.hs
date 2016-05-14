@@ -26,10 +26,14 @@ data Node =
   | Var Text
   | Declare [Text]
   | Let Node Node
+  | Call Node [Node]
   | New Node [Node]
   | Bin Node Text Node
   | PreUni Text Node
   | PostUni Node Text
+  | Undefined
+  | Null
+  | Str Text
   deriving (Ord,Eq,Show)
 
 nextIndent indent = T.concat ["  ", indent]
@@ -148,11 +152,21 @@ compile' indent (Function args body) =
     ctx "args" = T.intercalate ", " args
     ctx "body" = compileBlock indent body
 --
+compile' indent Undefined =
+    T.concat [indent,"(undefiend)"]
+--
+compile' indent Null =
+    T.concat [indent,"(null)"]
+--
+compile' indent (Str str) =
+    -- FIXME: Encode.
+    T.concat [indent,"\"", T.replace "\"" "\\\"" str,"\""]
+--
 compile' indent (Return value) =
     T.concat [indent,"return (",compile' "" value,")"]
 --
-compile' indent (Dot node1 attr) =
-    T.concat [indent,compile' "" node1, ".", attr]
+compile' indent (Dot node attr) =
+    T.concat [indent,compile' "" node, ".", attr]
 --
 compile' indent (Var name) =
     T.concat [indent,name]
@@ -161,7 +175,7 @@ compile' indent (Declare names) =
     T.concat [indent, "var ", T.intercalate "," names]
 --
 compile' indent (Let node1 node2) =
-    T.concat [indent, compile' "" node1, " = (", compile' "" node1,")"]
+    T.concat [indent, compile' "" node1, " = (", compile' "" node2,")"]
 --
 compile' indent (Bin node1 op node2) =
     T.concat [indent, compile' "" node1, " ", op, " ", compile' "" node2]
@@ -174,4 +188,7 @@ compile' indent (PostUni node op) =
 --
 compile' indent (New constructor args) =
     T.concat [indent, "new (", compile' "" constructor, ")(",T.intercalate ", " (fmap (compile' "") args),")"]
+--
+compile' indent (Call target args) =
+    T.concat [indent, "(", compile' "" target, ")(",T.intercalate ", " (fmap (compile' "") args),")"]
 -- compile' _ node = error $ "Please implement compile' for " ++ show node
