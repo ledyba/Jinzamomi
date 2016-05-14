@@ -1,6 +1,6 @@
 name:                jinzamomi
 version:             0.1.0.0
-synopsis:            Novel game engine for HTML5
+synopsis:            Ahead of Time transpiler from Bishoujo-game to HTML5
 description:         Please see README.md
 homepage:            https://github.com/ledyba/jinzamomi#readme
 license:             GPL
