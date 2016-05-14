@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Uzume.Driver.Krkr.TJS2IR (
+module Jinzamomi.Driver.Krkr.TJS2IR (
   compile
 ) where
 
@@ -7,7 +7,7 @@ import Language.KAG
 import Language.TJS
 import Control.Monad.State
 import qualified Data.Text as T
-import qualified Uzume.Driver.IR as IR
+import qualified Jinzamomi.Driver.IR as IR
 
 type Compile = State Env
 data Env = Env {

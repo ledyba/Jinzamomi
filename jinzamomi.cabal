@@ -1,13 +1,13 @@
-name:                uzume
+name:                jinzamomi
 version:             0.1.0.0
-synopsis:            Initial project template from stack
+synopsis:            Novel game engine for HTML5
 description:         Please see README.md
-homepage:            https://github.com/githubuser/uzume#readme
-license:             BSD3
+homepage:            https://github.com/ledyba/jinzamomi#readme
+license:             GPL
 license-file:        LICENSE
 author:              Author name here
-maintainer:          example@example.com
-copyright:           2016 Author name here
+maintainer:          nasda60@hotmail.com
+copyright:           2016 PSI, Momiji
 category:            Web
 build-type:          Simple
 -- extra-source-files:
@@ -15,9 +15,9 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Uzume
-                     , Uzume.Driver.IR
-                     , Uzume.Driver.Krkr.TJS2IR
+  exposed-modules:     Jinzamomi
+                     , Jinzamomi.Driver.IR
+                     , Jinzamomi.Driver.Krkr.TJS2IR
   build-depends:       base >= 4.7 && < 5
                      , text
                      , mtl
@@ -25,13 +25,13 @@ library
                      , language-krkr
   default-language:    Haskell2010
 
-executable uzume
+executable jinzamomi
   hs-source-dirs:      app
   main-is:             Main.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , language-krkr
-                     , uzume
+                     , jinzamomi
                      , text
   default-language:    Haskell2010
 
@@ -43,8 +43,8 @@ test-suite spec
   ghc-options: -Wall
   build-depends:       base
                      , hspec >= 1.3
-                     , uzume
+                     , jinzamomi
 
 source-repository head
   type:     git
-  location: https://github.com/githubuser/uzume
+  location: https://github.com/ledyba/jinzamomi

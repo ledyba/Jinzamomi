@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings,FlexibleContexts #-}
 
-module Uzume.Driver.IR (
+module Jinzamomi.Driver.IR (
   Node(..),
   compile
 ) where
