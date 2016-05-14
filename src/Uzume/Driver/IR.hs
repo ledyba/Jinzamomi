@@ -15,8 +15,8 @@ data Node =
   | If Node Node (Maybe Node)
   | While Node Node
   | For Node Node Node Node
-  | Class [Text] [(Text, Node)]
   | Switch Node [(Node, [Node])] (Maybe [Node])
+  | Try Node Text Node
   | Function [Text] Node
   | Return Node
   | Continue
@@ -26,18 +26,23 @@ data Node =
   | Var Text
   | Declare [Text]
   | Let Node Node
+  deriving (Ord,Eq,Show)
 
 nextIndent indent = T.concat ["  ", indent]
 
 compile :: Node -> Text
-compile node = compileBlock "" node
+compile = compileBlock ""
 
 compileBlock :: Text -> Node -> Text
-compileBlock indent node@(Block xs) = compile' indent node
+compileBlock indent node@Block{} = compile' indent node
+compileBlock indent node@If{} = compile' indent node
+compileBlock indent node@While{} = compile' indent node
+compileBlock indent node@Switch{} = compile' indent node
+compileBlock indent node@Try{} = compile' indent node
 compileBlock indent node = compile' indent node `T.append` ";"
 
 join :: [Text] -> Text
-join xs = T.intercalate "\n" xs
+join = T.intercalate "\n"
 
 compile' :: Text -> Node -> Text
 --
@@ -50,6 +55,20 @@ compile' indent (Block nodes) =
   where
     ctx "indent" = indent
     ctx "nodes" = join (fmap ((`T.append` ";").compile' (nextIndent indent)) nodes)
+--
+compile' indent (Try node@(Block _) var catch_@(Block _)) =
+  TL.toStrict $ substitute (join [
+    "${indent}try",
+    "${node}",
+    "${indent}catch(${var})",
+    "${catch}"
+  ]) ctx
+  where
+    ctx "indent" = indent
+    ctx "node" = compileBlock indent node
+    ctx "var" = var
+    ctx "catch" = compileBlock indent catch_
+compile' indent try@Try{} = error ("Try expects blocks, but got: \n  "++show try)
 --
 compile' indent (Switch value nodes def) =
   TL.toStrict $ substitute (join [
@@ -138,3 +157,5 @@ compile' indent (Declare names) =
 --
 compile' indent (Let node1 node2) =
     T.concat [indent, compile' "" node1, " = (", compile' "" node1,")"]
+--
+-- compile' _ node = error $ "Please implement compile' for " ++ show node
