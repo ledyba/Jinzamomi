@@ -30,6 +30,7 @@ executable jinzamomi
   main-is:             Main.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
+                     , hslogger
                      , language-krkr
                      , jinzamomi
                      , text
