@@ -37,6 +37,7 @@ data Node =
   | Array [Node]
   | Nop
   | Raw Text
+  | Int Int
   deriving (Ord,Eq,Show)
 
 nextIndent indent = T.concat ["  ", indent]
@@ -176,6 +177,9 @@ compile' indent Null =
 --
 compile' indent (Str str) =
     T.concat [indent, jsEscape str]
+--
+compile' indent (Int n) =
+    T.concat [indent, T.pack (show n)]
 --
 compile' indent (Raw str) =
     T.concat [indent, str]
