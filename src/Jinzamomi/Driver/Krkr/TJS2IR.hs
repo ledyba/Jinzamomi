@@ -136,6 +136,12 @@ compileStmt scope (Prop (Identifer name) getter setter _) = do
 
 --Class    Identifer (Maybe [Identifer]) [Stmt] SrcSpan
 --Func     Identifer [FuncArg] Stmt SrcSpan
+compileStmt scope (Func (Identifer name) args stmt _) = do
+  scope' <- newScope scope
+  stmt' <- compileStmt scope' stmt
+  (args', nodes') <- compileFuncArg scope args
+  return $ IR.Assign (IR.Dot (IR.Var (localObj scope)) name) (IR.Function args' (IR.Block $ nodes' ++ [stmt']))
+
 --Block    [Stmt] SrcSpan
 compileStmt scope (Block [] _) = return (IR.Block [])
 compileStmt scope (Block stmts _) = do
@@ -149,6 +155,14 @@ compileStmt scope (Block stmts _) = do
       stmts'
     ]
 --Var      [(Identifer,Maybe Expr)] SrcSpan
+compileStmt scope (Var assigns _) = do
+    vars <- mapM compileVar assigns
+    return (IR.Block vars)
+  where
+    compileVar (Identifer name, Nothing) = return $ IR.Assign (IR.Var name) IR.Undefined
+    compileVar (Identifer name, Just expr) = do
+      expr' <- compileExpr scope expr
+      return $ IR.Assign (IR.Var name) expr'
 --Exec     Expr SrcSpan
 compileStmt scope (Exec expr _) = compileExpr scope expr
 --Nop      SrcSpan
@@ -188,6 +202,11 @@ compileExpr scope (Ident (Identifer name) _) = return (IR.Dot (IR.Var (localObj 
 --Array    [Expr] SrcSpan
 --Dict     [(Expr, Expr)] SrcSpan
 --AnonFunc [FuncArg] Stmt SrcSpan
+compileExpr scope (AnonFunc args stmt _) = do
+  scope' <- newScope scope
+  stmt' <- compileStmt scope' stmt
+  (args', nodes') <- compileFuncArg scope args
+  return $ IR.Function args' (IR.Block $ nodes' ++ [stmt'])
 --Index    Expr Expr SrcSpan
 --Call     Expr [ApplyArg] SrcSpan
 compileExpr scope (Call expr args _) = do
@@ -215,9 +234,24 @@ compileApplyArg scope (ApplyExpr expr) = compileExpr scope expr
 --ApplyVoid
 compileApplyArg scope ApplyVoid = return IR.Undefined
 
-compileFuncArg :: FuncArg -> IR.Node
-compileFuncArg = undefined
---data FuncArg =
---FuncLeft
---FuncArray Identifer
---FuncArg Identifer (Maybe Expr)
+compileFuncArg :: Scope -> [FuncArg] -> Compile ([T.Text], [IR.Node])
+compileFuncArg scope args = do
+    args' <- compileFuncArg' args ([], [])
+    return (done args')
+  where
+    done (args, nodes) = (reverse args, concat $ reverse nodes)
+    local = localObj scope
+    compileFuncArg' :: [FuncArg] -> ([T.Text], [[IR.Node]]) -> Compile ([T.Text], [[IR.Node]])
+    compileFuncArg' _args ctx@(args, nodes) =
+        case _args of
+          [FuncLeft] -> return ctx
+          [FuncArray (Identifer name)] -> return (name:args, [
+            IR.Assign (IR.Dot (IR.Var local) name) (IR.Call (IR.Dot (IR.Var "argument") "slice") [IR.Int (length args)])
+            ]:nodes)
+          FuncArg (Identifer name) expr:xs ->
+            case expr of
+              Just expr' -> do
+                expr'' <- compileExpr scope expr'
+                return (name:args, [IR.Assign (IR.Dot (IR.Var local) name) (IR.Bin (IR.Var name) "||" expr'')]:nodes)
+              Nothing -> return (name:args, [IR.Assign (IR.Dot (IR.Var local) name) (IR.Var name)]:nodes)
+          _ -> error (show _args)
