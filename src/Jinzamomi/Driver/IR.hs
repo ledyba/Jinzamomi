@@ -30,6 +30,7 @@ data Node =
   | Call Node [Node]
   | New Node [Node]
   | Bin Node Text Node
+  | Tri Node Node Node
   | PreUni Text Node
   | PostUni Node Text
   | Undefined
@@ -216,6 +217,9 @@ compile' indent (Assign node1 node2) =
 --
 compile' indent (Bin node1 op node2) =
     T.concat [indent, compile' "" node1, " ", op, " ", compile' "" node2]
+--
+compile' indent (Tri cond t_ f_) =
+    T.concat [indent, "(", compile' "" cond, ") ? (", compile' "" t_, ") : (", compile' "" f_, ")"]
 --
 compile' indent (PreUni op node) =
     T.concat [indent, op, "(", compile' "" node,")"]

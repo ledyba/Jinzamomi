@@ -184,6 +184,10 @@ compileExpr scope (Bin "=" (PreUni "&" (Dot e1 (Identifer prop) _) _) e2 _) = do
   e1' <- compileExpr scope e1
   e2' <- compileExpr scope e2
   return (IR.Call (IR.Dot (IR.Var "Object") "defineProperty") [e1', IR.Str prop, e2'])
+compileExpr scope (Bin "if" v cond _) = do
+  v' <- compileExpr scope v
+  cond' <- compileExpr scope cond
+  return (IR.Tri cond' v' IR.Null)
 compileExpr scope (Bin op e1 e2 _) = do
   e1' <- compileExpr scope e1
   e2' <- compileExpr scope e2
