@@ -16,14 +16,14 @@ uzume.krkr.global.System = (function() {
      * @return {string} ユーザのホームディレクトリのパス
      */
     get appDefaultPath() {
-      log.warn("appDefaultPath");
+      console.warn("appDefaultPath");
       return "";
     },
     /**
      * @return {string} データ保存場所のパス
      */
     get dataPath() {
-      log.warn("dataPath");
+      console.warn("dataPath");
       return "";
     },
     /**
@@ -75,14 +75,14 @@ uzume.krkr.global.System = (function() {
      * @return {string} 吉里吉里本体のパス
      */
     get exeName() {
-      log.warn("exeName");
+      console.warn("exeName");
       return "krkr.exe";
     },
     /**
      * @return {string} 吉里吉里本体のあるフォルダのパス
      */
     get exePath() {
-      log.warn("exePath");
+      console.warn("exePath");
       return "";
     },
     /**
@@ -121,7 +121,7 @@ uzume.krkr.global.System = (function() {
      * @return {string} マイドキュメントのパス
      */
     get personalPath() {
-      log.warn("personalPath");
+      console.warn("personalPath");
       return "";
     },
     /**
@@ -179,7 +179,7 @@ uzume.krkr.global.System = (function() {
      * @return {boolean}
      */
     createAppLock: function(key) {
-      log.warn("Uzume does not support app lock.");
+      console.warn("Uzume does not support app lock.");
       return false;
     },
     /**
@@ -187,20 +187,20 @@ uzume.krkr.global.System = (function() {
      * @return {string}
      */
     createUUID: function() {
-      log.warn("We don't implement System.createUUID yet.")
+      console.warn("We don't implement System.createUUID yet.")
       return "e8b2a2b5-5ceb-4f75-a08b-1f1bdfdca4f1";
     },
     /**
      * メモリのコンパクト化
      */
     doCompact: function(level) {
-      log.warn("doCompact does nothing today.");
+      console.warn("doCompact does nothing today.");
     },
     /**
      * 吉里吉里の同期終了
      */
     exit: function() {
-      log.warn("exit does nothing today.");
+      console.warn("exit does nothing today.");
     },
     /**
      * コマンドラインオプションの取得
@@ -216,7 +216,7 @@ uzume.krkr.global.System = (function() {
      * @return {boolean}
      */
     getKeyState: function() {
-      log.error("Not implemented yet");
+      console.error("Not implemented yet");
     },
     /**
      * ティックカウントの取得
@@ -261,7 +261,7 @@ uzume.krkr.global.System = (function() {
       if (idx >= 0) {
         this.continuousHandlers_.splice(idx, 1);
       } else {
-        log.warn("Continuous Handler not found.");
+        console.warn("Continuous Handler not found.");
       }
     },
     /**
@@ -279,14 +279,14 @@ uzume.krkr.global.System = (function() {
      * @return {bool}
      */
     shellExecute: function(target, param) {
-      log.error("We can't exec shell in browsers.");
+      console.error("We can't exec shell in browsers.");
       return false;
     },
     /**
      * 吉里吉里の非同期終了
      */
     terminate: function() {
-      log.warn("terminate does nothing today.");
+      console.warn("terminate does nothing today.");
     },
     /**
      * 色定数の実際の色の取得
@@ -306,7 +306,7 @@ uzume.krkr.global.System = (function() {
     touchImages: function(storages, limitbytes, timeout) {
       limitbytes = limitbytes || 0;
       timeout = timeout || 0;
-      log.warn("TODO: Please implement touchImages");
+      console.warn("TODO: Please implement touchImages");
     },
   };
 

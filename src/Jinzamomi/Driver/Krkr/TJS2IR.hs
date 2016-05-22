@@ -172,7 +172,7 @@ compileStmt scope (Var assigns _) = do
     compileVar (Identifer name, Nothing) = return $ IR.Assign (IR.Var name) IR.Undefined
     compileVar (Identifer name, Just expr) = do
       expr' <- compileExpr scope expr
-      return $ IR.Assign (IR.Var name) expr'
+      return $ IR.Assign (IR.Dot (IR.Var (localObj scope)) name) expr'
 --Exec     Expr SrcSpan
 compileStmt scope (Exec expr _) = compileExpr scope expr
 --Nop      SrcSpan
@@ -188,6 +188,10 @@ compileExpr scope (Bin "if" v cond _) = do
   v' <- compileExpr scope v
   cond' <- compileExpr scope cond
   return (IR.Tri cond' v' IR.Null)
+compileExpr scope (Bin "instanceof" v cls _) = do
+  v' <- compileExpr scope v
+  cls' <- compileExpr scope cls
+  return (IR.Bin v' "instanceof" (IR.Idx (IR.Raw "global") cls'))
 compileExpr scope (Bin op e1 e2 _) = do
   e1' <- compileExpr scope e1
   e2' <- compileExpr scope e2

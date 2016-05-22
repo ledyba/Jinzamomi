@@ -173,7 +173,7 @@ compile' indent (Function args body) =
     ctx "body" = compileBlock indent body
 --
 compile' indent Undefined =
-    T.concat [indent,"(undefiend)"]
+    T.concat [indent,"(undefined)"]
 --
 compile' indent Nop = ""
 --

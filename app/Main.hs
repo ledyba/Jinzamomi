@@ -31,5 +31,5 @@ setupLogger level = do
 main :: IO ()
 main = do
   setupLogger INFO
-  Main.compile "ext/kag3/data/startup.tjs" "runtime/test/proj/startup.js"
-  Main.compile "ext/kag3/data/system/Initialize.tjs" "runtime/test/proj/system/Initialize.js"
+  Main.compile "ext/kag3/data/startup.tjs" "runtime/test/proj/startup.tjs.js"
+  Main.compile "ext/kag3/data/system/Initialize.tjs" "runtime/test/proj/system/Initialize.tjs.js"

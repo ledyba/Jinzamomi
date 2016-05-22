@@ -10,7 +10,7 @@ uzume.krkr = (function() {
   krkr.main = function(path, args) {
     global.System.projectBase_ = path;
     global.System.args_ = args;
-    global.Script.execStorage("startup.js");
+    global.Scripts.execStorage("startup.tjs");
   };
   global.Window = {};
   /**

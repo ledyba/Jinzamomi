@@ -1,4 +1,4 @@
-uzume.krkr.global.Script = (function() {
+uzume.krkr.global.Scripts = (function() {
   var global = uzume.krkr.global;
   var Script = {
     /**
@@ -34,7 +34,7 @@ uzume.krkr.global.Script = (function() {
     execStorage: function(storage) {
       console.info("execStorage: ", storage);
       var script = document.createElement("script")
-      script.setAttribute("src", global.System.projectBase_ + storage);
+      script.setAttribute("src", global.System.projectBase_ + storage + ".js");
       document.body.appendChild(script);
     },
     /**
