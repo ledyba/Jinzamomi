@@ -22,6 +22,7 @@ data Node =
   | Continue
   | Break
   | Dot Node Text
+  | Idx Node Node
   | This
   | Var Text
   | Declare [Text]
@@ -35,9 +36,12 @@ data Node =
   | Null
   | Str Text
   | Array [Node]
+  | Obj [(Node,Node)]
   | Nop
   | Raw Text
   | Int Int
+  | Bool Bool
+  | Throw Node
   deriving (Ord,Eq,Show)
 
 nextIndent indent = T.concat ["  ", indent]
@@ -175,6 +179,11 @@ compile' indent Nop = ""
 compile' indent Null =
     T.concat [indent,"(null)"]
 --
+compile' indent (Bool True) =
+    T.concat [indent,"(true)"]
+compile' indent (Bool False) =
+    T.concat [indent,"(false)"]
+--
 compile' indent (Str str) =
     T.concat [indent, jsEscape str]
 --
@@ -192,6 +201,9 @@ compile' indent (Return value) =
 --
 compile' indent (Dot node attr) =
     T.concat [indent,compile' "" node, "[", jsEscape attr ,"]"]
+--
+compile' indent (Idx node attr) =
+    T.concat [indent,compile' "" node, "[", compile' "" attr, "]"]
 --
 compile' indent (Var name) =
     T.concat [indent,name]
@@ -216,4 +228,7 @@ compile' indent (New constructor args) =
 --
 compile' indent (Call target args) =
     T.concat [indent, "(", compile' "" target, ")(",T.intercalate ", " (fmap (compile' "") args),")"]
+--
+compile' indent (Throw node) =
+    T.concat [indent, "throw (", compile' "" node,")"]
 -- compile' _ node = error $ "Please implement compile' for " ++ show node

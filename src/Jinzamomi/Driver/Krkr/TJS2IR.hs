@@ -8,6 +8,7 @@ import Language.TJS
 import Control.Monad.State
 import qualified Data.Text as T
 import qualified Jinzamomi.Driver.IR as IR
+import Data.Maybe (maybeToList)
 
 type Compile = State Env
 data Env = Env {
@@ -33,31 +34,42 @@ initScope = Scope {
   withObj = "global"
 }
 
-newScope :: Scope -> Compile Scope
-newScope scope = do
+withNewScope :: Scope -> (Scope -> Compile [IR.Node]) -> Compile IR.Node
+withNewScope scope f = do
   env <- get
   let nextLocal = "scope" `T.append` T.pack (show (localCount env))
   put $ env { localCount = 1 + localCount env }
-  return $ scope {
-    localObj = nextLocal
-  }
+  let scope' = scope { localObj = nextLocal }
+  let currentLocal = localObj scope
+  stmts' <- f scope'
+  return $ IR.Block $ concat [
+      [IR.Declare [nextLocal]],
+      [IR.Assign (IR.Var nextLocal) (IR.Call (IR.Dot (IR.Var "Object") "create") [IR.Var currentLocal])],
+      stmts'
+    ]
 
-with :: Scope -> Compile Scope
-with scope = do
+with :: Scope -> IR.Node -> (Scope -> Compile IR.Node) -> Compile IR.Node
+with scope obj' f = do
   env <- get
   let nextWithObj = "with" `T.append` T.pack (show (localCount env))
   put $ env { withCount = 1 + withCount env }
-  return $ scope {
-    withObj = nextWithObj
-  }
+  let scope' = scope { withObj = nextWithObj }
+  node' <- f scope'
+  return $ IR.Block [
+      IR.Declare [nextWithObj],
+      IR.Assign (IR.Var nextWithObj) obj',
+      node'
+    ]
 
-allocTemp :: Compile IR.Node
-allocTemp = do
+withTemp :: (IR.Node -> Compile a) -> Compile a
+withTemp f = do
   env <- get
   let nextTempObj = "temp" `T.append` T.pack (show (tempCount env))
   put $ env { tempCount = 1 + tempCount env }
-  return (IR.Var nextTempObj)
+  f (IR.Var nextTempObj)
 
+createObject :: IR.Node
+createObject = IR.Call (IR.Dot (IR.Var "Object") "create") [IR.Null]
 
 compile :: Stmt -> IR.Node
 compile stmt =
@@ -93,17 +105,23 @@ compileStmt scope (Break _) = return IR.Break
 --With     Expr Stmt SrcSpan
 compileStmt scope (With obj stmt _) = do
   obj' <- compileExpr scope obj
-  scope' <- with scope
-  let nextWithObj = withObj scope'
-  stmt' <- compileStmt scope' stmt
-  return $ IR.Block [
-      IR.Declare [nextWithObj],
-      IR.Assign (IR.Var nextWithObj) obj',
-      stmt'
-    ]
+  with scope obj' $ \scope' -> compileStmt scope' stmt
 --Try      Stmt Identifer Stmt SrcSpan
 --Throw    Expr SrcSpan
+compileStmt scope (Throw expr _) = do
+  expr' <- compileExpr scope expr
+  return (IR.Throw expr')
 --For      Stmt Expr Expr Stmt SrcSpan
+compileStmt scope (For init_ cond_ next_ body_ _) =
+  withNewScope scope $ \scope' -> do
+    init' <- mapM (compileStmt scope') init_
+    cond' <- mapM (compileExpr scope') cond_
+    next' <- mapM (compileExpr scope') next_
+    body' <- compileStmt scope' body_
+    return [maybeToIR init', IR.For IR.Nop (maybeToIR cond') (maybeToIR next') body']
+  where
+    maybeToIR Nothing = IR.Nop
+    maybeToIR (Just node) = node
 --Continue SrcSpan
 compileStmt scope (Continue _) = return IR.Continue
 --Return   Expr SrcSpan
@@ -111,13 +129,14 @@ compileStmt scope (Return expr _) = do
   expr' <- compileExpr scope expr
   return $ IR.Return expr'
 --Prop     Identifer (Maybe Stmt) (Maybe (Identifer, Stmt)) SrcSpan
-compileStmt scope (Prop (Identifer name) getter setter _) = do
-    tmp@(IR.Var tempName) <- allocTemp
+compileStmt scope (Prop (Identifer name) getter setter _) =
+  withTemp $ \tmp -> do
+    let IR.Var tempName = tmp
     getter' <- mapM compileGetter getter
     setter' <- mapM compileSetter setter
     return $ IR.Block $ concat [
         [IR.Declare [tempName]],
-        [IR.Assign tmp (IR.Call (IR.Dot (IR.Var "Object") "create") [IR.Null])],
+        [IR.Assign tmp createObject],
         case getter' of
           Just x -> [IR.Assign (IR.Dot tmp "get") x]
           Nothing -> [],
@@ -137,23 +156,14 @@ compileStmt scope (Prop (Identifer name) getter setter _) = do
 --Class    Identifer (Maybe [Identifer]) [Stmt] SrcSpan
 --Func     Identifer [FuncArg] Stmt SrcSpan
 compileStmt scope (Func (Identifer name) args stmt _) = do
-  scope' <- newScope scope
-  stmt' <- compileStmt scope' stmt
+  body' <- withNewScope scope $ \scope' -> fmap return (compileStmt scope' stmt)
   (args', nodes') <- compileFuncArg scope args
-  return $ IR.Assign (IR.Dot (IR.Var (localObj scope)) name) (IR.Function args' (IR.Block $ nodes' ++ [stmt']))
+  return $ IR.Assign (IR.Dot (IR.Var (localObj scope)) name) (IR.Function args' body')
 
 --Block    [Stmt] SrcSpan
 compileStmt scope (Block [] _) = return (IR.Block [])
-compileStmt scope (Block stmts _) = do
-  let currentLocal = localObj scope
-  scope' <- newScope scope
-  stmts' <- mapM (compileStmt scope') stmts
-  let nextLocal = localObj scope'
-  return $ IR.Block $ concat [
-      [IR.Declare [nextLocal]],
-      [IR.Assign (IR.Var nextLocal) (IR.Call (IR.Dot (IR.Var "Object") "create") [IR.Var currentLocal])],
-      stmts'
-    ]
+compileStmt scope (Block stmts _) =
+  withNewScope scope $ \scope' -> mapM (compileStmt scope') stmts
 --Var      [(Identifer,Maybe Expr)] SrcSpan
 compileStmt scope (Var assigns _) = do
     vars <- mapM compileVar assigns
@@ -194,6 +204,7 @@ compileExpr scope (PostUni e op _) = do
 --Tri      Expr Expr Expr SrcSpan
 --Cast     Identifer Expr SrcSpan
 --Int      Integer SrcSpan
+compileExpr scope (Int i _) = return $ IR.Int (fromIntegral i)
 --Real     Double SrcSpan
 --Str      Text SrcSpan
 compileExpr scope (Str text _) = return $ IR.Str text
@@ -201,18 +212,34 @@ compileExpr scope (Str text _) = return $ IR.Str text
 compileExpr scope (Ident (Identifer name) _) = return (IR.Dot (IR.Var (localObj scope)) name)
 --Array    [Expr] SrcSpan
 --Dict     [(Expr, Expr)] SrcSpan
+compileExpr scope (Dict kvs _) = do
+    kvs' <- mapM compile' kvs
+    withTemp $ \tmp ->
+      return (IR.Call (IR.Function [] (IR.Block $
+        concat [
+            [IR.Assign tmp createObject],
+            [IR.Assign (IR.Idx tmp k) v | (k,v) <- kvs'],
+            [tmp]
+          ])) [])
+  where
+    compile' (k,v) = do
+      k' <- compileExpr scope k
+      v' <- compileExpr scope v
+      return (k',v')
 --AnonFunc [FuncArg] Stmt SrcSpan
 compileExpr scope (AnonFunc args stmt _) = do
-  scope' <- newScope scope
-  stmt' <- compileStmt scope' stmt
+  body' <- withNewScope scope $ \scope' -> fmap return (compileStmt scope' stmt)
   (args', nodes') <- compileFuncArg scope args
-  return $ IR.Function args' (IR.Block $ nodes' ++ [stmt'])
+  return $ IR.Function args' body'
 --Index    Expr Expr SrcSpan
+compileExpr scope (Index expr attr _) = do
+  expr' <- compileExpr scope expr
+  attr' <- compileExpr scope attr
+  return (IR.Idx expr' attr')
 --Call     Expr [ApplyArg] SrcSpan
 compileExpr scope (Call expr args _) = do
   expr' <- compileExpr scope expr
-  args' <- mapM (compileApplyArg scope) args
-  return $ IR.Call expr' args'
+  compileFuncApply scope expr' args
 --Dot      Expr Identifer SrcSpan
 compileExpr scope (Dot expr (Identifer name) _) = do
   expr' <- compileExpr scope expr
@@ -221,18 +248,35 @@ compileExpr scope (Dot expr (Identifer name) _) = do
 compileExpr scope (Null _) = return IR.Null
 --WithThis SrcSpan
 compileExpr scope (WithThis _) = return (IR.Var (withObj scope))
+--Regexp String String SrcSpan TODO: flag
+compileExpr scope (Regexp pat flags _) = return (IR.New (IR.Raw "RegExp") [IR.Str pat, IR.Str (T.pack flags)])
 compileExpr _ expr = error ("Please implement compileExpr for: "++show expr)
 
-compileApplyArg :: Scope -> ApplyArg -> Compile IR.Node
---ApplyLeft
--- FIXME
-compileApplyArg _ ApplyLeft = return $ IR.Var "arguments"
---ApplyArray Expr
-compileApplyArg scope (ApplyArray expr) = compileExpr scope expr
---ApplyExpr Expr
-compileApplyArg scope (ApplyExpr expr) = compileExpr scope expr
---ApplyVoid
-compileApplyArg scope ApplyVoid = return IR.Undefined
+compileFuncApply :: Scope -> IR.Node -> [ApplyArg] -> Compile IR.Node
+compileFuncApply scope target' args = do
+    args' <- mapM compile args
+    let apply = or (fmap snd args')
+    if apply
+      then case target' of
+          IR.Dot self' func' ->
+            withTemp $ \self ->
+              return (IR.Block [
+                IR.Assign self self',
+                IR.Call (IR.Dot self "apply") [self, IR.Call (IR.Dot (IR.Var "Array") "concat") (fmap toConcat args')]
+                ])
+          _ -> return (IR.Call (IR.Dot target' "call") (IR.Null:fmap fst args'))
+      else return (IR.Call target' (fmap fst args'))
+  where
+    toConcat (expr, True) = expr
+    toConcat (expr, False) = IR.Array [expr]
+    compile ApplyLeft = return (IR.Var "arguments", True)
+    compile (ApplyArray expr) = do
+      expr' <- compileExpr scope expr
+      return (expr', True)
+    compile ApplyVoid = return (IR.Null, False)
+    compile (ApplyExpr expr) = do
+      expr' <- compileExpr scope expr
+      return (expr', False)
 
 compileFuncArg :: Scope -> [FuncArg] -> Compile ([T.Text], [IR.Node])
 compileFuncArg scope args = do
