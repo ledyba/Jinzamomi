@@ -21,5 +21,7 @@
       (Object["defineProperty"])(with1, "showScrollBars", (uzume.krkr.getPropertyDescriptor)(scope1, "_dummyProp"));
     };
   };
+  (scope0["Plugins"]["link"])("plugin/menu.dll");
+  (scope0["Plugins"]["link"])("plugin/KAGParser.dll");
   (scope0["Scripts"]["execStorage"])("system/Initialize.tjs");
 })(uzume.krkr.global, uzume.krkr.global);

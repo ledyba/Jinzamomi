@@ -1,25 +1,13 @@
 module Main where
 
-import qualified Data.Text as T
-import Language.TJS as TJS
-import Jinzamomi.Driver.Krkr.TJS2IR as TJS2IR
-import Jinzamomi.Driver.IR as IR
+import qualified Jinzamomi.Driver as D
 import System.Log.Logger
 import System.Log.Handler.Syslog
 import System.Log.Handler.Simple
 import System.Log.Handler (setFormatter)
 import System.Log.Formatter
-import GHC.IO.Handle.FD as FD
-
-compile :: FilePath -> FilePath -> IO ()
-compile from to = do
-  file <- readFile from
-  case TJS.parse from (T.pack file) of
-    Right ast -> do
-      let out = T.unpack (IR.compile (TJS2IR.compile ast))
-      writeFile to out
-      infoM "Krkr" $ "Compiled source:\n" ++ out
-    Left err -> error (show err)
+import qualified GHC.IO.Handle.FD as FD
+import System.Environment (getArgs)
 
 setupLogger :: Priority -> IO ()
 setupLogger level = do
@@ -31,5 +19,8 @@ setupLogger level = do
 main :: IO ()
 main = do
   setupLogger INFO
-  Main.compile "ext/kag3/data/startup.tjs" "runtime/test/proj/startup.tjs.js"
-  Main.compile "ext/kag3/data/system/Initialize.tjs" "runtime/test/proj/system/Initialize.tjs.js"
+  drv:args <- getArgs
+  let executor = D.executorOf drv
+  executor args
+  --Main.compile "ext/kag3/data/startup.tjs" "runtime/test/proj/startup.tjs.js"
+  --Main.compile "ext/kag3/data/system/Initialize.tjs" "runtime/test/proj/system/Initialize.tjs.js"
