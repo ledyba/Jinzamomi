@@ -1,5 +1,5 @@
 module Jinzamomi.Driver.Krkr (
-  executor
+  execute
 ) where
 
 import qualified Data.Text as T
@@ -7,6 +7,7 @@ import Language.TJS as TJS
 import System.Log.Logger
 import Jinzamomi.Driver.Krkr.TJS2IR as TJS2IR
 import Jinzamomi.Driver.IR as IR
+import Jinzamomi.Driver.Util
 
 compile :: FilePath -> FilePath -> IO ()
 compile from to = do
@@ -18,9 +19,12 @@ compile from to = do
       infoM "Krkr" $ "Compiled source:\n" ++ out
     Left err -> error (show err)
 
-build :: [String] -> IO ()
-build xs = return ()
 
-executor :: [String] -> IO ()
-executor ("build":xs) = build xs
-executor xs = error ("Unknown command" ++ show xs)
+build :: [String] -> IO ()
+build [path] = do
+  files <- enumAllFiles path
+  mapM_ putStrLn files
+
+execute :: [String] -> IO ()
+execute ("build":xs) = build xs
+execute xs = error ("Unknown command" ++ show xs)
