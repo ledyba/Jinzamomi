@@ -10,7 +10,7 @@ import Options.Applicative
 
 data DriverOpt =
     None
-  | Krkr [String]
+  | Krkr Krkr.Opt
 
 tag :: String
 tag = "Driver"
@@ -19,9 +19,5 @@ execute:: DriverOpt -> IO ()
 execute opt@(Krkr args) = Krkr.execute args
 execute None = errorM tag "Please specify driver"
 
-krkrOpt :: Mod CommandFields DriverOpt
-krkrOpt = command "krkr" (info krkrOption (progDesc "Krkr Driver."))
-  where
-    krkrOption = Krkr <$> many (argument str (metavar "TARGET..."))
-
-driverOpt = hsubparser krkrOpt
+driverOpt :: Parser DriverOpt
+driverOpt = Krkr <$> hsubparser Krkr.opt
