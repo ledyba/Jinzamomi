@@ -41,6 +41,7 @@ data Node =
   | Nop
   | Raw Text
   | Int Int
+  | Double Double
   | Bool Bool
   | Throw Node
   deriving (Ord,Eq,Show)
@@ -66,6 +67,7 @@ compileBlock indent node@If{} = compile' indent node
 compileBlock indent node@While{} = compile' indent node
 compileBlock indent node@Switch{} = compile' indent node
 compileBlock indent node@Try{} = compile' indent node
+compileBlock indent node@For{} = compile' indent node
 compileBlock indent node = compile' indent node `T.append` ";"
 
 join :: [Text] -> Text
@@ -73,23 +75,15 @@ join = T.intercalate "\n"
 
 compile' :: Text -> Node -> Text
 --
-compile' indent (Block []) = indent `T.append` "{}"
-compile' indent (Block nodes) =
-  TL.toStrict $ substitute (join [
-    "${indent}{",
-    "${nodes}",
-    "${indent}}"
-  ]) ctx
-  where
-    ctx "indent" = indent
-    ctx "nodes" = join (fmap ((`T.append` ";").compile' (nextIndent indent)) nodes)
+compile' indent (Block nodes) = join $ fmap (compileBlock (nextIndent indent)) $ filter (Nop /=) nodes
 --
 compile' indent (Try node@(Block _) var catch_@(Block _)) =
   TL.toStrict $ substitute (join [
-    "${indent}try",
+    "${indent}try {",
     "${node}",
-    "${indent}catch(${var})",
-    "${catch}"
+    "${indent}} catch(${var}) {",
+    "${catch}",
+    "${indent}}"
   ]) ctx
   where
     ctx "indent" = indent
@@ -132,32 +126,37 @@ compile' indent Break = T.concat [indent, "break"]
 --
 compile' indent (While cond body) =
     TL.toStrict $ substitute (join [
-      "while(${cond})",
-      "${body}"
+      "${indent}while(${cond}) {",
+      "${body}",
+      "${indent}}"
     ]) ctx
   where
-    ctx "cond" = compile' indent cond
+    ctx "indent" = indent
+    ctx "cond" = compile' "" cond
     ctx "body" = compileBlock indent body
 --
 compile' indent (If cond then_ else_) =
     TL.toStrict $ substitute (join [
-      "if(${cond})",
+      "${indent}if(${cond}){",
       "${then}",
       "${else}"
     ]) ctx
   where
+    ctx "indent" = indent
     ctx "cond" = compile' "" cond
     ctx "then" = compileBlock indent then_
     ctx "else" = case else_ of
-      Just e -> join [T.concat [indent, "else"], compileBlock indent e]
-      Nothing -> ""
+      Just e -> join [T.concat [indent, "} else {"], compileBlock indent e, T.concat [indent, "}"]]
+      Nothing -> indent `T.append` "}"
 --
 compile' indent (For init_ cond_ up_ body) =
     TL.toStrict $ substitute (join [
-      "for(${init}; ${cond}; ${up})",
-      "${body}"
+      "${indent}for(${init};${cond};${up}) {",
+      "${body}",
+      "${indent}}"
     ]) ctx
   where
+    ctx "indent" = indent
     ctx "init" = compile' "" init_
     ctx "cond" = compile' "" cond_
     ctx "up" = compile' "" up_
@@ -165,10 +164,12 @@ compile' indent (For init_ cond_ up_ body) =
 --
 compile' indent (Function args body@(Block _)) =
     TL.toStrict $ substitute (join [
-      "function(${args})",
-      "${body}"
+      "${indent}function(${args}) {",
+      "${indent}${body}",
+      "${indent}}"
     ]) ctx
   where
+    ctx "indent" = indent
     ctx "args" = T.intercalate ", " args
     ctx "body" = compileBlock indent body
 compile' indent (Function args node) = compile' indent (Function args (Block [node]))
@@ -191,6 +192,9 @@ compile' indent (Str str) =
 --
 compile' indent (Int n) =
     T.concat [indent, T.pack (show n)]
+--
+compile' indent (Double r) =
+    T.concat [indent, T.pack (show r)]
 --
 compile' indent (Raw str) =
     T.concat [indent, str]

@@ -39,7 +39,7 @@ packages:
 - '.'
 - location:
     git: https://github.com/ledyba/language-krkr.git
-    commit: a7d0e01e33009098c7d92cf51d7949abd0126ffb
+    commit: af17e3612e2c7f47bbea88e4404f591c808885ec
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
 extra-deps:

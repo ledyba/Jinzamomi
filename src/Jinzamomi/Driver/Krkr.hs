@@ -12,7 +12,7 @@ import Options.Applicative
 import qualified Jinzamomi.Driver.Krkr.TJS2IR as TJS2IR
 import qualified Jinzamomi.Driver.IR as IR
 import Jinzamomi.Driver.Util
-import System.FilePath (dropFileName, takeExtension, (</>))
+import System.FilePath (dropFileName, takeExtension, (</>), (<.>))
 import System.Directory (createDirectoryIfMissing)
 
 data Opt =
@@ -36,7 +36,7 @@ opt = command "krkr" (info buildCmd (progDesc "Krkr Driver."))
 compile :: FilePath -> FilePath -> FilePath -> IO Bool
 compile from to src = do
   file <- TIO.readFile (from </> src)
-  let outTo = to </> src
+  let outTo = to </> src <.> "js"
   createDirectoryIfMissing True (dropFileName outTo)
   case TJS.parse src file of
     Right ast -> do

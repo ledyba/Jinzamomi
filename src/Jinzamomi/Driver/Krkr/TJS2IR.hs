@@ -37,6 +37,9 @@ initScope = Scope {
 global :: IR.Node
 global = IR.Raw "global"
 
+local :: Scope -> T.Text -> IR.Node
+local scope = IR.Dot (IR.Var (localObj scope))
+
 withNewScope :: Scope -> (Scope -> Compile [IR.Node]) -> Compile IR.Node
 withNewScope scope f = do
   env <- get
@@ -111,6 +114,13 @@ compileStmt scope (With obj stmt _) = do
   obj' <- compileExpr scope obj
   with scope obj' $ \scope' -> compileStmt scope' stmt
 --Try      Stmt Identifer Stmt SrcSpan
+compileStmt scope (Try try (Identifer err) catch_ _) = do
+  try' <- withNewScope scope $ \scope' -> compileStmt scope' try >>= \r -> return [r]
+  catch' <- withNewScope scope $ \scope' -> compileStmt scope' catch_ >>= \r -> return [r]
+  return (IR.Try try' err (IR.Block [
+    IR.Assign (local scope err) (IR.Var err),
+    catch'
+    ]))
 --Throw    Expr SrcSpan
 compileStmt scope (Throw expr _) = do
   expr' <- compileExpr scope expr
@@ -157,6 +167,7 @@ compileStmt scope (Prop (Identifer name) getter setter _) =
       return (IR.Function [name] stmt')
 
 --Class    Identifer (Maybe [Identifer]) [Stmt] SrcSpan
+-- TODO: 継承
 compileStmt scope (Class (Identifer name) exts stmts _) = do
   fbody' <- withNewScope scope $ \scope' -> do
     body' <- mapM (compileStmt scope') stmts
@@ -168,7 +179,7 @@ compileStmt scope (Func (Identifer name) args stmt _) = do
     stmt' <- compileStmt scope' stmt
     return [stmt']
   (args', nodes') <- compileFuncArg scope args
-  return $ IR.Assign (IR.Dot (IR.Var (localObj scope)) name) (IR.Function args' (IR.Block $ nodes' ++ [body']))
+  return $ IR.Assign (local scope name) (IR.Function args' (IR.Block $ nodes' ++ [body']))
 
 --Block    [Stmt] SrcSpan
 compileStmt scope (Block [] _) = return (IR.Block [])
@@ -179,15 +190,14 @@ compileStmt scope (Var assigns _) = do
     vars <- mapM compileVar assigns
     return (IR.Block vars)
   where
-    compileVar (Identifer name, Nothing) = return $ IR.Assign (IR.Var name) IR.Undefined
+    compileVar (Identifer name, Nothing) = return $ IR.Assign (local scope name) IR.Undefined
     compileVar (Identifer name, Just expr) = do
       expr' <- compileExpr scope expr
-      return $ IR.Assign (IR.Dot (IR.Var (localObj scope)) name) expr'
+      return $ IR.Assign (local scope name) expr'
 --Exec     Expr SrcSpan
 compileStmt scope (Exec expr _) = compileExpr scope expr
 --Nop      SrcSpan
 compileStmt scope (Nop _) = return IR.Nop
-compileStmt _ stmt = error ("Please implement compileStmt for: "++show stmt)
 
 compileExpr :: Scope -> Expr -> Compile IR.Node
 --Bin      String Expr Expr SrcSpan
@@ -206,7 +216,12 @@ compileExpr scope (Bin "if" v cond _) = do
 compileExpr scope (Bin "instanceof" v cls _) = do
   v' <- compileExpr scope v
   cls' <- compileExpr scope cls
-  return (IR.Bin v' "instanceof" (IR.Idx global cls'))
+  return (IR.Call (IR.Dot global "__instanceof") [v', cls'])
+compileExpr scope (Bin "incontextof" v cls _) = do
+  v' <- compileExpr scope v
+  cls' <- compileExpr scope cls
+  return (IR.Call (IR.Dot global "__incontextof") [v', cls'])
+--
 compileExpr scope (Bin op e1 e2 _) = do
   e1' <- compileExpr scope e1
   e2' <- compileExpr scope e2
@@ -221,6 +236,9 @@ compileExpr scope (PreUni op e _) = do
   e' <- compileExpr scope e
   return $ IR.PreUni (T.pack op) e'
 --PostUni  Expr String SrcSpan
+compileExpr scope (PostUni e "isvalid" _) = do
+  e' <- compileExpr scope e
+  return $ IR.Call (IR.Dot global "__isvalid") [e']
 compileExpr scope (PostUni e op _) = do
   e' <- compileExpr scope e
   return $ IR.PostUni e' (T.pack op)
@@ -237,10 +255,11 @@ compileExpr scope (Cast (Identifer name) val _) = do
 --Int      Integer SrcSpan
 compileExpr scope (Int i _) = return $ IR.Int (fromIntegral i)
 --Real     Double SrcSpan
+compileExpr scope (Real d _) = return $ IR.Double d
 --Str      Text SrcSpan
 compileExpr scope (Str text _) = return $ IR.Str text
 --Ident    Identifer SrcSpan
-compileExpr scope (Ident (Identifer name) _) = return (IR.Dot (IR.Var (localObj scope)) name)
+compileExpr scope (Ident (Identifer name) _) = return (local scope name)
 --Array    [Expr] SrcSpan
 compileExpr scope (Array exprs _) = do
     exprs' <- mapM (compileExpr scope) exprs
@@ -284,7 +303,6 @@ compileExpr scope (Null _) = return IR.Null
 compileExpr scope (WithThis _) = return (IR.Var (withObj scope))
 --Regexp String String SrcSpan TODO: flag
 compileExpr scope (Regexp pat flags _) = return (IR.New (IR.Raw "RegExp") [IR.Str pat, IR.Str (T.pack flags)])
-compileExpr _ expr = error ("Please implement compileExpr for: "++show expr)
 
 compileFuncApply :: Scope -> IR.Node -> [ApplyArg] -> Compile IR.Node
 compileFuncApply scope target' args = do
@@ -293,11 +311,9 @@ compileFuncApply scope target' args = do
     if apply
       then case target' of
           IR.Dot self' func' ->
-            withTemp $ \self ->
-              return [
-                IR.Assign self self',
-                IR.Call (IR.Dot self "apply") [self, IR.Call (IR.Dot (IR.Var "Array") "concat") (fmap toConcat args')]
-                ]
+            return (IR.Call (IR.Function ["self", "args"] (IR.Block [
+                IR.Call (IR.Dot (IR.Dot (IR.Var "self") func') "apply") [IR.Var "self", IR.Var "args"]
+                ])) [self', IR.Call (IR.Dot (IR.Var "Array") "concat") (fmap toConcat args')])
           _ -> return (IR.Call (IR.Dot target' "call") (IR.Null:fmap fst args'))
     else return (IR.Call target' (fmap fst args'))
   where
