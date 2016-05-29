@@ -163,7 +163,7 @@ compile' indent (For init_ cond_ up_ body) =
     ctx "up" = compile' "" up_
     ctx "body" = compileBlock indent body
 --
-compile' indent (Function args body) =
+compile' indent (Function args body@(Block _)) =
     TL.toStrict $ substitute (join [
       "function(${args})",
       "${body}"
@@ -171,6 +171,7 @@ compile' indent (Function args body) =
   where
     ctx "args" = T.intercalate ", " args
     ctx "body" = compileBlock indent body
+compile' indent (Function args node) = compile' indent (Function args (Block [node]))
 --
 compile' indent Undefined =
     T.concat [indent,"(undefined)"]
