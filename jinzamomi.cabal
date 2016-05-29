@@ -19,6 +19,7 @@ library
                      , Jinzamomi.Driver
                      , Jinzamomi.Driver.Util
                      , Jinzamomi.Driver.IR
+  other-modules:   Jinzamomi.Driver.Krkr.TJS2IR
                      , Jinzamomi.Driver.Krkr
   build-depends:       base >= 4.7 && < 5
                      , text
