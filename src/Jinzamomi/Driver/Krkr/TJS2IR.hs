@@ -186,6 +186,7 @@ compileStmt scope (Var assigns _) = do
 --Exec     Expr SrcSpan
 compileStmt scope (Exec expr _) = compileExpr scope expr
 --Nop      SrcSpan
+compileStmt scope (Nop _) = return IR.Nop
 compileStmt _ stmt = error ("Please implement compileStmt for: "++show stmt)
 
 compileExpr :: Scope -> Expr -> Compile IR.Node
@@ -241,6 +242,9 @@ compileExpr scope (Str text _) = return $ IR.Str text
 --Ident    Identifer SrcSpan
 compileExpr scope (Ident (Identifer name) _) = return (IR.Dot (IR.Var (localObj scope)) name)
 --Array    [Expr] SrcSpan
+compileExpr scope (Array exprs _) = do
+    exprs' <- mapM (compileExpr scope) exprs
+    return $ IR.Array exprs'
 --Dict     [(Expr, Expr)] SrcSpan
 compileExpr scope (Dict kvs _) = do
     kvs' <- mapM compile' kvs
