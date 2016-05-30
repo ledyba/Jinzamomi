@@ -219,8 +219,8 @@ compileExpr scope (Bin "instanceof" v cls _) = do
   return (IR.Call (IR.Dot global "__instanceof") [v', cls'])
 compileExpr scope (Bin "incontextof" v cls _) = do
   v' <- compileExpr scope v
-  cls' <- compileExpr scope cls
-  return (IR.Call (IR.Dot global "__incontextof") [v', cls'])
+  self' <- compileExpr scope cls
+  return (IR.Call (IR.Dot v' "bind") [v', self'])
 --
 compileExpr scope (Bin op e1 e2 _) = do
   e1' <- compileExpr scope e1
@@ -232,6 +232,12 @@ compileExpr scope (PreUni "&" (Dot e (Identifer prop) _) _) = do
   return (IR.Call (IR.Raw "uzume.krkr.getPropertyDescriptor") [e', IR.Str prop])
 compileExpr scope (PreUni "&" (Ident (Identifer prop) _) _) =
   return (IR.Call (IR.Var "uzume.krkr.getPropertyDescriptor") [IR.Var (localObj scope), IR.Str prop])
+compileExpr scope (PreUni "#" e _) = do
+  e' <- compileExpr scope e
+  return (IR.Call (IR.Dot global "__ord") [e'])
+compileExpr scope (PreUni "$" e _) = do
+  e' <- compileExpr scope e
+  return (IR.Call (IR.Dot global "__chr") [e'])
 compileExpr scope (PreUni op e _) = do
   e' <- compileExpr scope e
   return $ IR.PreUni (T.pack op) e'

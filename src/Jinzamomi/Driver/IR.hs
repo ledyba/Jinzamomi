@@ -164,9 +164,9 @@ compile' indent (For init_ cond_ up_ body) =
 --
 compile' indent (Function args body@(Block _)) =
     TL.toStrict $ substitute (join [
-      "${indent}function(${args}) {",
+      "${indent}(function(${args}) {",
       "${indent}${body}",
-      "${indent}}"
+      "${indent}})"
     ]) ctx
   where
     ctx "indent" = indent
