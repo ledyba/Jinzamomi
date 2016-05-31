@@ -1,19 +1,19 @@
-uzume.krkr.global.Console = (function(){
-  var global = uzume.krkr.global;
+jinzamomi.krkr.global.Console = (function(){
+  var global = jinzamomi.krkr.global;
   var Console = {
     visible: false
   };
   return Console;
 })();
-uzume.krkr.global.Controller = (function(){
-  var global = uzume.krkr.global;
+jinzamomi.krkr.global.Controller = (function(){
+  var global = jinzamomi.krkr.global;
   var Controller = {
     visible: false
   };
   return Controller;
 })();
-uzume.krkr.global.Debug = (function() {
-  var global = uzume.krkr.global;
+jinzamomi.krkr.global.Debug = (function() {
+  var global = jinzamomi.krkr.global;
   var Script = {
     /**
      */
@@ -46,23 +46,23 @@ uzume.krkr.global.Debug = (function() {
      */
     clearLogFileOnError: false,
     /**
-     * @private {uzume.krkr.global.Console}
+     * @private {jinzamomi.krkr.global.Console}
      */
     console_: Object.create(global.Console),
     /**
      * コンソールオブジェクト
-     * @return {uzume.krkr.global.Console}
+     * @return {jinzamomi.krkr.global.Console}
      */
     get console () {
       return global.Debug.console_;
     },
     /**
-     * @private {uzume.krkr.global.Controller}
+     * @private {jinzamomi.krkr.global.Controller}
      */
     controller_: Object.create(global.Controller),
     /**
      * コントローラオブジェクト
-     * @return {uzume.krkr.global.Controller}
+     * @return {jinzamomi.krkr.global.Controller}
      */
     get controller () {
       return global.Debug.controller_;

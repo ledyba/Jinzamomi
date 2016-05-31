@@ -202,6 +202,11 @@ compile' indent (Raw str) =
 --
 compile' indent (Array nodes) =
     T.concat [indent,"[", T.intercalate ", " $ fmap (compile' "") nodes, "]"]
+compile' indent (Dict nodes) =
+    T.concat [indent,"{", T.intercalate ", " $ fmap each nodes, "}"]
+  where
+    each :: (Text, Node) -> Text
+    each (key, value) = T.concat [key,":",compile' "" value]
 --
 compile' indent (Return value) =
     T.concat [indent,"return (",compile' "" value,")"]

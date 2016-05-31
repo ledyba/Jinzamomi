@@ -83,13 +83,13 @@ compileStmt :: Stmt -> IR.Node
 compileStmt stmt =
     let body = IR.Function ["global", "scope"] (evalState (compileStmt' initScope stmt) initEnv)
     in
-      IR.Call body [IR.Raw "uzume.krkr.global", IR.Raw "uzume.krkr.global"]
+      IR.Call body [IR.Raw "jinzamomi.krkr.global", IR.Raw "jinzamomi.krkr.global"]
 
 compileExpr :: Expr -> IR.Node
 compileExpr expr =
     let body = IR.Function ["global", "scope"] (IR.Block [IR.Return (evalState (compileExpr' initScope expr) initEnv)])
     in
-      IR.Call body [IR.Raw "uzume.krkr.global", IR.Raw "uzume.krkr.global"]
+      IR.Call body [IR.Raw "jinzamomi.krkr.global", IR.Raw "jinzamomi.krkr.global"]
 
 compileStmt' :: Scope -> Stmt -> Compile IR.Node
 --If       Expr Stmt (Maybe Stmt) SrcSpan

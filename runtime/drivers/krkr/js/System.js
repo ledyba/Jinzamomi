@@ -1,4 +1,4 @@
-uzume.krkr.global.System = (function() {
+jinzamomi.krkr.global.System = (function() {
   var System = {
     /** @type {function[]} */
     continuousHandlers_: [],
@@ -115,7 +115,7 @@ uzume.krkr.global.System = (function() {
      * @return {string} platformName
      */
     get platformName() {
-      return "uzume";
+      return "jinzamomi";
     },
     /**
      * @return {string} マイドキュメントのパス
@@ -145,7 +145,7 @@ uzume.krkr.global.System = (function() {
      * @return {string} versionInformation
      */
     get versionInformation() {
-      return "Uzume 1.0";
+      return "jinzamomi 1.0";
     },
     /**
      * @return {string} versionString
@@ -179,7 +179,7 @@ uzume.krkr.global.System = (function() {
      * @return {boolean}
      */
     createAppLock: function(key) {
-      console.warn("Uzume does not support app lock.");
+      console.warn("jinzamomi does not support app lock.");
       return false;
     },
     /**
@@ -250,7 +250,7 @@ uzume.krkr.global.System = (function() {
      * @return {string}
      */
     readRegValue: function() {
-      throw new Error("Uzume does not support readRegValue");
+      throw new Error("jinzamomi does not support readRegValue");
     },
     /**
      * Continuous ハンドラの削除

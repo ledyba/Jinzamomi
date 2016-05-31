@@ -1,4 +1,4 @@
-uzume.krkr = (function() {
+jinzamomi.krkr = (function() {
   var krkr = {};
   var global = {};
   krkr.global = global;

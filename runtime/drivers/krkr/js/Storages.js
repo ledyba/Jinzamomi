@@ -1,5 +1,5 @@
-uzume.krkr.global.Storages = (function() {
-  var global = uzume.krkr.global;
+jinzamomi.krkr.global.Storages = (function() {
+  var global = jinzamomi.krkr.global;
   var Storages = {
     /**
      * 自動検索パスへの追加

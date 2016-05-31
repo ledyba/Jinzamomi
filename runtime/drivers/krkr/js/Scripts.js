@@ -1,5 +1,5 @@
-uzume.krkr.global.Scripts = (function() {
-  var global = uzume.krkr.global;
+jinzamomi.krkr.global.Scripts = (function() {
+  var global = jinzamomi.krkr.global;
   var Script = {
     /**
      */
