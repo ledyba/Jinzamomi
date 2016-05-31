@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Jinzamomi.Driver.Krkr.TJS2IR (
-  compile
+  compileStmt,
+  compileExpr
 ) where
 
 import Language.KAG
@@ -78,72 +79,78 @@ withTemp f = do
 createObject :: IR.Node
 createObject = IR.Call (IR.Dot (IR.Var "Object") "create") [IR.Null]
 
-compile :: Stmt -> IR.Node
-compile stmt =
-    let body = IR.Function ["global", "scope"] (evalState (compileStmt initScope stmt) initEnv)
+compileStmt :: Stmt -> IR.Node
+compileStmt stmt =
+    let body = IR.Function ["global", "scope"] (evalState (compileStmt' initScope stmt) initEnv)
     in
       IR.Call body [IR.Raw "uzume.krkr.global", IR.Raw "uzume.krkr.global"]
 
-compileStmt :: Scope -> Stmt -> Compile IR.Node
+compileExpr :: Expr -> IR.Node
+compileExpr expr =
+    let body = IR.Function ["global", "scope"] (IR.Block [IR.Return (evalState (compileExpr' initScope expr) initEnv)])
+    in
+      IR.Call body [IR.Raw "uzume.krkr.global", IR.Raw "uzume.krkr.global"]
+
+compileStmt' :: Scope -> Stmt -> Compile IR.Node
 --If       Expr Stmt (Maybe Stmt) SrcSpan
-compileStmt scope (If expr then_ else_ _) = do
-  e <- compileExpr scope expr
-  th <- compileStmt scope then_
-  els <- mapM (compileStmt scope) else_
+compileStmt' scope (If expr then_ else_ _) = do
+  e <- compileExpr' scope expr
+  th <- compileStmt' scope then_
+  els <- mapM (compileStmt' scope) else_
   return $ IR.If e th els
 --Switch   Expr [(Expr, [Stmt])] (Maybe [Stmt]) SrcSpan
-compileStmt scope (Switch value bodies def _) = do
-  value' <- compileExpr scope value
+compileStmt' scope (Switch value bodies def _) = do
+  value' <- compileExpr' scope value
   bodies' <- mapM compileConds bodies
-  def' <- mapM (mapM (compileStmt scope)) def
+  def' <- mapM (mapM (compileStmt' scope)) def
   return $ IR.Switch value' bodies' def'
   where
     compileConds (expr, stmts) = do
-      expr' <- compileExpr scope expr
-      stmts' <- mapM (compileStmt scope) stmts
+      expr' <- compileExpr' scope expr
+      stmts' <- mapM (compileStmt' scope) stmts
       return (expr', stmts')
 --While    Expr Stmt SrcSpan
-compileStmt scope (While cond body _) = do
-  cond' <- compileExpr scope cond
-  body' <- compileStmt scope body
+compileStmt' scope (While cond body _) = do
+  cond' <- compileExpr' scope cond
+  body' <- compileStmt' scope body
   return $ IR.While cond' body'
 --Break    SrcSpan
-compileStmt scope (Break _) = return IR.Break
+compileStmt' scope (Break _) = return IR.Break
 --With     Expr Stmt SrcSpan
-compileStmt scope (With obj stmt _) = do
-  obj' <- compileExpr scope obj
-  with scope obj' $ \scope' -> compileStmt scope' stmt
+compileStmt' scope (With obj stmt _) = do
+  obj' <- compileExpr' scope obj
+  with scope obj' $ \scope' -> compileStmt' scope' stmt
 --Try      Stmt Identifer Stmt SrcSpan
-compileStmt scope (Try try (Identifer err) catch_ _) = do
-  try' <- withNewScope scope $ \scope' -> compileStmt scope' try >>= \r -> return [r]
-  catch' <- withNewScope scope $ \scope' -> compileStmt scope' catch_ >>= \r -> return [r]
+compileStmt' scope (Try try (Identifer err) catch_ _) = do
+  try' <- withNewScope scope $ \scope' -> compileStmt' scope' try >>= \r -> return [r]
+  catch' <- withNewScope scope $ \scope' -> compileStmt' scope' catch_ >>= \r -> return [r]
   return (IR.Try try' err (IR.Block [
     IR.Assign (local scope err) (IR.Var err),
     catch'
     ]))
 --Throw    Expr SrcSpan
-compileStmt scope (Throw expr _) = do
-  expr' <- compileExpr scope expr
+compileStmt' scope (Throw expr _) = do
+  expr' <- compileExpr' scope expr
   return (IR.Throw expr')
 --For      Stmt Expr Expr Stmt SrcSpan
-compileStmt scope (For init_ cond_ next_ body_ _) =
+compileStmt' scope (For init_ cond_ next_ body_ _) =
   withNewScope scope $ \scope' -> do
-    init' <- mapM (compileStmt scope') init_
-    cond' <- mapM (compileExpr scope') cond_
-    next' <- mapM (compileExpr scope') next_
-    body' <- compileStmt scope' body_
+    init' <- mapM (compileStmt' scope') init_
+    cond' <- mapM (compileExpr' scope') cond_
+    next' <- mapM (compileExpr' scope') next_
+    body' <- compileStmt' scope' body_
     return [maybeToIR init', IR.For IR.Nop (maybeToIR cond') (maybeToIR next') body']
   where
     maybeToIR Nothing = IR.Nop
     maybeToIR (Just node) = node
 --Continue SrcSpan
-compileStmt scope (Continue _) = return IR.Continue
+compileStmt' scope (Continue _) = return IR.Continue
 --Return   Expr SrcSpan
-compileStmt scope (Return expr _) = do
-  expr' <- compileExpr scope expr
+compileStmt' scope (Return expr _) = do
+  expr' <- compileExpr' scope expr
   return $ IR.Return expr'
 --Prop     Identifer (Maybe Stmt) (Maybe (Identifer, Stmt)) SrcSpan
-compileStmt scope (Prop (Identifer name) getter setter _) =
+compileStmt' scope (Prop (Identifer name) getter setter _) =
   withTemp $ \tmp -> do
     let IR.Var tempName = tmp
     getter' <- mapM compileGetter getter
@@ -160,118 +167,118 @@ compileStmt scope (Prop (Identifer name) getter setter _) =
       ]
   where
     compileGetter stmt = do
-      stmt' <- compileStmt scope stmt
+      stmt' <- compileStmt' scope stmt
       return (IR.Function [] stmt')
     compileSetter (Identifer name, stmt) = do
-      stmt' <- compileStmt scope stmt
+      stmt' <- compileStmt' scope stmt
       return (IR.Function [name] stmt')
 
 --Class    Identifer (Maybe [Identifer]) [Stmt] SrcSpan
 -- TODO: 継承
-compileStmt scope (Class (Identifer name) exts stmts _) = do
+compileStmt' scope (Class (Identifer name) exts stmts _) = do
   fbody' <- withNewScope scope $ \scope' -> do
-    body' <- mapM (compileStmt scope') stmts
+    body' <- mapM (compileStmt' scope') stmts
     return (body' ++ [IR.Return (IR.Var (localObj scope'))])
   return (IR.Assign (IR.Dot global name) (IR.Call (IR.Function [] fbody') []))
 --Func     Identifer [FuncArg] Stmt SrcSpan
-compileStmt scope (Func (Identifer name) args stmt _) = do
+compileStmt' scope (Func (Identifer name) args stmt _) = do
   body' <- withNewScope scope $ \scope' -> do
-    stmt' <- compileStmt scope' stmt
+    stmt' <- compileStmt' scope' stmt
     return [stmt']
   (args', nodes') <- compileFuncArg scope args
   return $ IR.Assign (local scope name) (IR.Function args' (IR.Block $ nodes' ++ [body']))
 
 --Block    [Stmt] SrcSpan
-compileStmt scope (Block [] _) = return (IR.Block [])
-compileStmt scope (Block stmts _) =
-  withNewScope scope $ \scope' -> mapM (compileStmt scope') stmts
+compileStmt' scope (Block [] _) = return (IR.Block [])
+compileStmt' scope (Block stmts _) =
+  withNewScope scope $ \scope' -> mapM (compileStmt' scope') stmts
 --Var      [(Identifer,Maybe Expr)] SrcSpan
-compileStmt scope (Var assigns _) = do
+compileStmt' scope (Var assigns _) = do
     vars <- mapM compileVar assigns
     return (IR.Block vars)
   where
     compileVar (Identifer name, Nothing) = return $ IR.Assign (local scope name) IR.Undefined
     compileVar (Identifer name, Just expr) = do
-      expr' <- compileExpr scope expr
+      expr' <- compileExpr' scope expr
       return $ IR.Assign (local scope name) expr'
 --Exec     Expr SrcSpan
-compileStmt scope (Exec expr _) = compileExpr scope expr
+compileStmt' scope (Exec expr _) = compileExpr' scope expr
 --Nop      SrcSpan
-compileStmt scope (Nop _) = return IR.Nop
+compileStmt' scope (Nop _) = return IR.Nop
 
-compileExpr :: Scope -> Expr -> Compile IR.Node
+compileExpr' :: Scope -> Expr -> Compile IR.Node
 --Bin      String Expr Expr SrcSpan
-compileExpr scope (Bin "=" (PreUni "&" (Dot e1 (Identifer prop) _) _) e2 _) = do
-  e1' <- compileExpr scope e1
-  e2' <- compileExpr scope e2
+compileExpr' scope (Bin "=" (PreUni "&" (Dot e1 (Identifer prop) _) _) e2 _) = do
+  e1' <- compileExpr' scope e1
+  e2' <- compileExpr' scope e2
   return (IR.Call (IR.Dot (IR.Var "Object") "defineProperty") [e1', IR.Str prop, e2'])
-compileExpr scope (Bin "\\" e1 e2 _) = do
-  e1' <- compileExpr scope e1
-  e2' <- compileExpr scope e2
+compileExpr' scope (Bin "\\" e1 e2 _) = do
+  e1' <- compileExpr' scope e1
+  e2' <- compileExpr' scope e2
   return (IR.Call (IR.Raw "Math.floor") [IR.Bin e1' "/" e2'])
-compileExpr scope (Bin "if" v cond _) = do
-  v' <- compileExpr scope v
-  cond' <- compileExpr scope cond
+compileExpr' scope (Bin "if" v cond _) = do
+  v' <- compileExpr' scope v
+  cond' <- compileExpr' scope cond
   return (IR.Tri cond' v' IR.Null)
-compileExpr scope (Bin "instanceof" v cls _) = do
-  v' <- compileExpr scope v
-  cls' <- compileExpr scope cls
+compileExpr' scope (Bin "instanceof" v cls _) = do
+  v' <- compileExpr' scope v
+  cls' <- compileExpr' scope cls
   return (IR.Call (IR.Dot global "__instanceof") [v', cls'])
-compileExpr scope (Bin "incontextof" v cls _) = do
-  v' <- compileExpr scope v
-  self' <- compileExpr scope cls
+compileExpr' scope (Bin "incontextof" v cls _) = do
+  v' <- compileExpr' scope v
+  self' <- compileExpr' scope cls
   return (IR.Call (IR.Dot v' "bind") [v', self'])
 --
-compileExpr scope (Bin op e1 e2 _) = do
-  e1' <- compileExpr scope e1
-  e2' <- compileExpr scope e2
+compileExpr' scope (Bin op e1 e2 _) = do
+  e1' <- compileExpr' scope e1
+  e2' <- compileExpr' scope e2
   return $ IR.Bin e1' (T.pack op) e2'
 --PreUni   String Expr SrcSpan
-compileExpr scope (PreUni "&" (Dot e (Identifer prop) _) _) = do
-  e' <- compileExpr scope e
+compileExpr' scope (PreUni "&" (Dot e (Identifer prop) _) _) = do
+  e' <- compileExpr' scope e
   return (IR.Call (IR.Raw "uzume.krkr.getPropertyDescriptor") [e', IR.Str prop])
-compileExpr scope (PreUni "&" (Ident (Identifer prop) _) _) =
+compileExpr' scope (PreUni "&" (Ident (Identifer prop) _) _) =
   return (IR.Call (IR.Var "uzume.krkr.getPropertyDescriptor") [IR.Var (localObj scope), IR.Str prop])
-compileExpr scope (PreUni "#" e _) = do
-  e' <- compileExpr scope e
+compileExpr' scope (PreUni "#" e _) = do
+  e' <- compileExpr' scope e
   return (IR.Call (IR.Dot global "__ord") [e'])
-compileExpr scope (PreUni "$" e _) = do
-  e' <- compileExpr scope e
+compileExpr' scope (PreUni "$" e _) = do
+  e' <- compileExpr' scope e
   return (IR.Call (IR.Dot global "__chr") [e'])
-compileExpr scope (PreUni op e _) = do
-  e' <- compileExpr scope e
+compileExpr' scope (PreUni op e _) = do
+  e' <- compileExpr' scope e
   return $ IR.PreUni (T.pack op) e'
 --PostUni  Expr String SrcSpan
-compileExpr scope (PostUni e "isvalid" _) = do
-  e' <- compileExpr scope e
+compileExpr' scope (PostUni e "isvalid" _) = do
+  e' <- compileExpr' scope e
   return $ IR.Call (IR.Dot global "__isvalid") [e']
-compileExpr scope (PostUni e op _) = do
-  e' <- compileExpr scope e
+compileExpr' scope (PostUni e op _) = do
+  e' <- compileExpr' scope e
   return $ IR.PostUni e' (T.pack op)
 --Tri      Expr Expr Expr SrcSpan
-compileExpr scope (Tri cond a b _) = do
-  cond' <- compileExpr scope cond
-  a' <- compileExpr scope a
-  b' <- compileExpr scope b
+compileExpr' scope (Tri cond a b _) = do
+  cond' <- compileExpr' scope cond
+  a' <- compileExpr' scope a
+  b' <- compileExpr' scope b
   return $ IR.Tri cond' a' b'
 --Cast     Identifer Expr SrcSpan
-compileExpr scope (Cast (Identifer name) val _) = do
-  val' <- compileExpr scope val
+compileExpr' scope (Cast (Identifer name) val _) = do
+  val' <- compileExpr' scope val
   return $ IR.Call (IR.Raw "global.__cast") [IR.Str name, val']
 --Int      Integer SrcSpan
-compileExpr scope (Int i _) = return $ IR.Int (fromIntegral i)
+compileExpr' scope (Int i _) = return $ IR.Int (fromIntegral i)
 --Real     Double SrcSpan
-compileExpr scope (Real d _) = return $ IR.Double d
+compileExpr' scope (Real d _) = return $ IR.Double d
 --Str      Text SrcSpan
-compileExpr scope (Str text _) = return $ IR.Str text
+compileExpr' scope (Str text _) = return $ IR.Str text
 --Ident    Identifer SrcSpan
-compileExpr scope (Ident (Identifer name) _) = return (local scope name)
+compileExpr' scope (Ident (Identifer name) _) = return (local scope name)
 --Array    [Expr] SrcSpan
-compileExpr scope (Array exprs _) = do
-    exprs' <- mapM (compileExpr scope) exprs
+compileExpr' scope (Array exprs _) = do
+    exprs' <- mapM (compileExpr' scope) exprs
     return $ IR.Array exprs'
 --Dict     [(Expr, Expr)] SrcSpan
-compileExpr scope (Dict kvs _) = do
+compileExpr' scope (Dict kvs _) = do
     kvs' <- mapM compile' kvs
     body' <- withTemp $ \tmp ->
       return (concat [
@@ -282,33 +289,33 @@ compileExpr scope (Dict kvs _) = do
     return $ IR.Call (IR.Function [] body') []
   where
     compile' (k,v) = do
-      k' <- compileExpr scope k
-      v' <- compileExpr scope v
+      k' <- compileExpr' scope k
+      v' <- compileExpr' scope v
       return (k',v')
 --AnonFunc [FuncArg] Stmt SrcSpan
-compileExpr scope (AnonFunc args stmt _) = do
-  body' <- withNewScope scope $ \scope' -> fmap return (compileStmt scope' stmt)
+compileExpr' scope (AnonFunc args stmt _) = do
+  body' <- withNewScope scope $ \scope' -> fmap return (compileStmt' scope' stmt)
   (args', nodes') <- compileFuncArg scope args
   return $ IR.Function args' body'
 --Index    Expr Expr SrcSpan
-compileExpr scope (Index expr attr _) = do
-  expr' <- compileExpr scope expr
-  attr' <- compileExpr scope attr
+compileExpr' scope (Index expr attr _) = do
+  expr' <- compileExpr' scope expr
+  attr' <- compileExpr' scope attr
   return (IR.Idx expr' attr')
 --Call     Expr [ApplyArg] SrcSpan
-compileExpr scope (Call expr args _) = do
-  expr' <- compileExpr scope expr
+compileExpr' scope (Call expr args _) = do
+  expr' <- compileExpr' scope expr
   compileFuncApply scope expr' args
 --Dot      Expr Identifer SrcSpan
-compileExpr scope (Dot expr (Identifer name) _) = do
-  expr' <- compileExpr scope expr
+compileExpr' scope (Dot expr (Identifer name) _) = do
+  expr' <- compileExpr' scope expr
   return (IR.Dot expr' name)
 --Null     SrcSpan
-compileExpr scope (Null _) = return IR.Null
+compileExpr' scope (Null _) = return IR.Null
 --WithThis SrcSpan
-compileExpr scope (WithThis _) = return (IR.Var (withObj scope))
+compileExpr' scope (WithThis _) = return (IR.Var (withObj scope))
 --Regexp String String SrcSpan TODO: flag
-compileExpr scope (Regexp pat flags _) = return (IR.New (IR.Raw "RegExp") [IR.Str pat, IR.Str (T.pack flags)])
+compileExpr' scope (Regexp pat flags _) = return (IR.New (IR.Raw "RegExp") [IR.Str pat, IR.Str (T.pack flags)])
 
 compileFuncApply :: Scope -> IR.Node -> [ApplyArg] -> Compile IR.Node
 compileFuncApply scope target' args = do
@@ -327,11 +334,11 @@ compileFuncApply scope target' args = do
     toConcat (expr, False) = IR.Array [expr]
     compile ApplyLeft = return (IR.Var "arguments", True)
     compile (ApplyArray expr) = do
-      expr' <- compileExpr scope expr
+      expr' <- compileExpr' scope expr
       return (expr', True)
     compile ApplyVoid = return (IR.Null, False)
     compile (ApplyExpr expr) = do
-      expr' <- compileExpr scope expr
+      expr' <- compileExpr' scope expr
       return (expr', False)
 
 compileFuncArg :: Scope -> [FuncArg] -> Compile ([T.Text], [IR.Node])
@@ -351,7 +358,7 @@ compileFuncArg scope args = do
           FuncArg (Identifer name) expr:xs ->
             case expr of
               Just expr' -> do
-                expr'' <- compileExpr scope expr'
+                expr'' <- compileExpr' scope expr'
                 return (name:args, [IR.Assign (IR.Dot (IR.Var local) name) (IR.Bin (IR.Var name) "||" expr'')]:nodes)
               Nothing -> return (name:args, [IR.Assign (IR.Dot (IR.Var local) name) (IR.Var name)]:nodes)
           [] -> return ([], [])

@@ -38,6 +38,7 @@ data Node =
   | Str Text
   | Array [Node]
   | Obj [(Node,Node)]
+  | Dict [(Text,Node)]
   | Nop
   | Raw Text
   | Int Int

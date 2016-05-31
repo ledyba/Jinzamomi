@@ -39,7 +39,7 @@ opt = command "krkr" (info buildCmd (progDesc "Krkr Driver."))
 compileTJS :: FilePath -> T.Text -> Either P.ParseError T.Text
 compileTJS filepath content = do
   ast <- TJS.parse filepath content
-  return (IR.compile (TJS2IR.compile ast))
+  return (IR.compile (TJS2IR.compileStmt ast))
 --
 compileKAG :: FilePath -> T.Text -> Either P.ParseError T.Text
 compileKAG filepath content = do
@@ -73,7 +73,10 @@ build from to = do
           return False
     run path
       | takeExtension path == ".tjs" = runTask path "js" compileTJS
-      | takeExtension path == ".kag" = runTask path "js" compileKAG
+      | takeExtension path == ".ks" = runTask path "js" compileKAG
+      | otherwise = do
+          warningM tag ("Unknown file type: " ++ path)
+          return True
 
 execute :: Opt -> IO ()
 execute (Build from to) = build from to
