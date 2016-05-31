@@ -4,12 +4,15 @@ module Jinzamomi.Driver.Krkr (
   execute
 ) where
 
+import qualified Text.Parsec.Error as P
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import qualified　Language.TJS as TJS
+import qualified　Language.KAG as KAG
 import System.Log.Logger
 import Options.Applicative
 import qualified Jinzamomi.Driver.Krkr.TJS2IR as TJS2IR
+import qualified Jinzamomi.Driver.Krkr.KAG2IR as KAG2IR
 import qualified Jinzamomi.Driver.IR as IR
 import Jinzamomi.Driver.Util
 import System.FilePath (dropFileName, takeExtension, (</>), (<.>))
@@ -33,33 +36,44 @@ opt = command "krkr" (info buildCmd (progDesc "Krkr Driver."))
             argument str (metavar "FROM") <*>
             argument str (metavar "TO")
 
-compile :: FilePath -> FilePath -> FilePath -> IO Bool
-compile from to src = do
-  file <- TIO.readFile (from </> src)
-  let outTo = to </> src <.> "js"
-  createDirectoryIfMissing True (dropFileName outTo)
-  case TJS.parse src file of
-    Right ast -> do
-      let out = IR.compile (TJS2IR.compile ast)
-      infoM tag ("TJS2 Compile: " ++ src)
-      TIO.writeFile outTo out
-      return True
-    Left err -> do
-      errorM tag ("Error while compiling: " ++ src)
-      mapM_ (errorM tag) (lines (show err))
-      return False
+compileTJS :: FilePath -> T.Text -> Either P.ParseError T.Text
+compileTJS filepath content = do
+  ast <- TJS.parse filepath content
+  return (IR.compile (TJS2IR.compile ast))
+--
+compileKAG :: FilePath -> T.Text -> Either P.ParseError T.Text
+compileKAG filepath content = do
+  ast <- KAG.parse filepath content
+  return (IR.compile (KAG2IR.compile ast))
 
-build :: String -> String -> IO ()
+build :: FilePath -> FilePath -> IO ()
 build from to = do
-  createDirectoryIfMissing True to
-  files <- enumAllFiles from
-  let tjsFiles = filter (\f -> takeExtension f == ".tjs") files
-  results <- mapM (compile from to) tjsFiles
-  let errors = length (filter not results)
-  if errors /= 0 then
-    errorM tag (concat ["compiling errors on ", show errors, "(/", show (length results), ") tjs2 files. done."])
-  else
-    return ()
+    createDirectoryIfMissing True to
+    files <- enumAllFiles from
+    results <- mapM run files
+    let errors = length (filter not results)
+    if errors /= 0 then
+      errorM tag (concat ["compiling errors on ", show errors, "(/", show (length results), ") tjs2 files. done."])
+    else
+      return ()
+  where
+    runTask path ext runner = do
+      let inPath = from </> path
+      content <- TIO.readFile inPath
+      case runner inPath content of
+        Right res -> do
+          infoM tag ("[OK] " ++ inPath)
+          let outPath = to </> path <.> ext
+          createDirectoryIfMissing True (dropFileName outPath)
+          TIO.writeFile outPath res
+          return True
+        Left err -> do
+          errorM tag ("[NG] " ++ inPath)
+          mapM_ (errorM tag) (lines (show err))
+          return False
+    run path
+      | takeExtension path == ".tjs" = runTask path "js" compileTJS
+      | takeExtension path == ".kag" = runTask path "js" compileKAG
 
 execute :: Opt -> IO ()
 execute (Build from to) = build from to

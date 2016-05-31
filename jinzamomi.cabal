@@ -19,10 +19,12 @@ library
                      , Jinzamomi.Driver
                      , Jinzamomi.Driver.Util
                      , Jinzamomi.Driver.IR
-  other-modules:   Jinzamomi.Driver.Krkr.TJS2IR
-                     , Jinzamomi.Driver.Krkr
+  other-modules:       Jinzamomi.Driver.Krkr
+                     , Jinzamomi.Driver.Krkr.TJS2IR
+                     , Jinzamomi.Driver.Krkr.KAG2IR
   build-depends:       base >= 4.7 && < 5
                      , text
+                     , parsec
                      , hslogger
                      , mtl
                      , template
