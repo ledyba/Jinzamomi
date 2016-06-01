@@ -236,9 +236,9 @@ compileExpr' scope (Bin op e1 e2 _) = do
 --PreUni   String Expr SrcSpan
 compileExpr' scope (PreUni "&" (Dot e (Identifer prop) _) _) = do
   e' <- compileExpr' scope e
-  return (IR.Call (IR.Raw "uzume.krkr.getPropertyDescriptor") [e', IR.Str prop])
+  return (IR.Call (IR.Raw "jinzamomi.krkr.getPropertyDescriptor") [e', IR.Str prop])
 compileExpr' scope (PreUni "&" (Ident (Identifer prop) _) _) =
-  return (IR.Call (IR.Var "uzume.krkr.getPropertyDescriptor") [IR.Var (localObj scope), IR.Str prop])
+  return (IR.Call (IR.Var "jinzamomi.krkr.getPropertyDescriptor") [IR.Var (localObj scope), IR.Str prop])
 compileExpr' scope (PreUni "#" e _) = do
   e' <- compileExpr' scope e
   return (IR.Call (IR.Dot global "__ord") [e'])
