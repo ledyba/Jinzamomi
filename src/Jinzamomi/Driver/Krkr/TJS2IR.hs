@@ -237,6 +237,11 @@ compileExpr' scope (Bin op e1 e2 _) = do
 compileExpr' scope (PreUni "&" (Dot e (Identifer prop) _) _) = do
   e' <- compileExpr' scope e
   return (IR.Call (IR.Raw "jinzamomi.krkr.getPropertyDescriptor") [e', IR.Str prop])
+compileExpr' scope (PreUni "new" e _) = do
+    e' <- compileExpr' scope e
+    case e' of
+      IR.Call constructor args -> return (IR.New constructor args)
+      _ -> return (IR.New e' [])
 compileExpr' scope (PreUni "&" (Ident (Identifer prop) _) _) =
   return (IR.Call (IR.Var "jinzamomi.krkr.getPropertyDescriptor") [IR.Var (localObj scope), IR.Str prop])
 compileExpr' scope (PreUni "#" e _) = do

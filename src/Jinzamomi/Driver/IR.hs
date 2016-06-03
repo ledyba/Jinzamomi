@@ -239,7 +239,7 @@ compile' indent (PostUni node op) =
     T.concat [indent, "(", compile' "" node,")",op]
 --
 compile' indent (New constructor args) =
-    T.concat [indent, "new (", compile' "" constructor, ")(",T.intercalate ", " (fmap (compile' "") args),")"]
+    T.concat [indent, "new (", compile' "" constructor, ")(",T.intercalate ", " (fmap (compile' "") args), ")"]
 --
 compile' indent (Call target args) =
     T.concat [indent, "(", compile' "" target, ")(",T.intercalate ", " (fmap (compile' "") args),")"]
