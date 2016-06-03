@@ -1,6 +1,6 @@
 jinzamomi.krkr.global.Scripts = (function() {
   var global = jinzamomi.krkr.global;
-  var Script = {
+  var Scripts = {
     /**
      */
     dump: function() {
@@ -48,5 +48,5 @@ jinzamomi.krkr.global.Scripts = (function() {
       return (new Error()).stack;
     }
   };
-  return Script;
+  return Scripts;
 })();
