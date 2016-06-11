@@ -9,7 +9,7 @@ import Language.TJS
 import Control.Monad.State
 import qualified Data.Text as T
 import qualified Jinzamomi.Driver.IR as IR
-import Data.Maybe (maybeToList)
+import Data.Maybe (maybeToList, fromMaybe)
 
 type Compile = State Env
 data Env = Env {
@@ -176,10 +176,13 @@ compileStmt' scope (Prop (Identifer name) getter setter _) =
 --Class    Identifer (Maybe [Identifer]) [Stmt] SrcSpan
 -- TODO: 継承
 compileStmt' scope (Class (Identifer name) exts stmts _) = do
-  fbody' <- withNewScope scope $ \scope' -> do
-    body' <- mapM (compileStmt' scope') stmts
-    return (body' ++ [IR.Return (IR.Var (localObj scope'))])
-  return (IR.Assign (IR.Dot global name) (IR.Call (IR.Function [] fbody') []))
+    fbody' <- withNewScope scope $ \scope' -> do
+      body' <- mapM (compileStmt' scope') stmts
+      let exts' = fromMaybe [] exts
+      return (body' ++ [IR.Return (IR.Call (IR.Dot global "__defineKlass") [IR.Str name,IR.Var (localObj scope'), IR.Array (fmap id2txt exts')])])
+    return (IR.Assign (IR.Dot global name) (IR.Call (IR.Function [] fbody') []))
+  where
+    id2txt (Identifer text) = IR.Str text
 --Func     Identifer [FuncArg] Stmt SrcSpan
 compileStmt' scope (Func (Identifer name) args stmt _) = do
   body' <- withNewScope scope $ \scope' -> do

@@ -60,6 +60,14 @@ jinzamomi.krkr = (function() {
     r.open("GET", url, false);
     r.send("");
   };
+  global.__defineKlass = function(name, proto, exts){
+    var cstr = proto[name];
+    var f = function() {
+      cstr.apply(this, arguments);
+    };
+    f.prototype = proto;
+    return f;
+  };
 
   return krkr;
 })();
