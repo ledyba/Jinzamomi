@@ -36,9 +36,7 @@ jinzamomi.krkr.global.Scripts = (function() {
     execStorage: function(storage) {
       var fullPath = global.Storages.getPlacedPath(storage) + ".js";
       console.info("execStorage:", storage, '(' + fullPath + ')');
-      var script = document.createElement("script")
-      script.setAttribute("src", fullPath);
-      document.body.appendChild(script);
+      global.Eval(fullPath);
     },
     /**
      * ストレージ上のスクリプトの実行

@@ -48,6 +48,18 @@ jinzamomi.krkr = (function() {
     r.open("GET", url, false);
     r.send("");
   };
+  global.Eval = function(url) {
+    var r = new XMLHttpRequest();
+    r.onreadystatechange = function() {
+      // readyState = 4(complete)
+      // status = httpresponseのこと
+      if(r.readyState == 4) {
+        (0 || eval)(r.responseText);
+      }
+    };
+    r.open("GET", url, false);
+    r.send("");
+  };
 
   return krkr;
 })();
