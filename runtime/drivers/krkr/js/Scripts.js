@@ -34,9 +34,10 @@ jinzamomi.krkr.global.Scripts = (function() {
      * @param {string} script
      */
     execStorage: function(storage) {
-      console.info("execStorage: ", storage);
+      var fullPath = global.Storages.getPlacedPath(storage) + ".js";
+      console.info("execStorage:", storage, '(' + fullPath + ')');
       var script = document.createElement("script")
-      script.setAttribute("src", global.System.projectBase_ + storage + ".js");
+      script.setAttribute("src", fullPath);
       document.body.appendChild(script);
     },
     /**

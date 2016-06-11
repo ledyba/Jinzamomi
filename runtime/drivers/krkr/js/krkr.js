@@ -2,6 +2,7 @@ jinzamomi.krkr = (function() {
   var krkr = {};
   var global = {};
   krkr.global = global;
+  global.global = global;
   /**
    * main function
    * @param {string} path - project path
@@ -44,7 +45,7 @@ jinzamomi.krkr = (function() {
         }
       }
     };
-    r.open("GET", url, true);
+    r.open("GET", url, false);
     r.send("");
   };
 

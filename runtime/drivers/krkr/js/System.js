@@ -75,14 +75,13 @@ jinzamomi.krkr.global.System = (function() {
      * @return {string} 吉里吉里本体のパス
      */
     get exeName() {
-      console.warn("exeName");
       return "krkr.exe";
     },
     /**
      * @return {string} 吉里吉里本体のあるフォルダのパス
      */
     get exePath() {
-      console.warn("exePath");
+      // 常にカレントディレクトリ、と約束する
       return "";
     },
     /**
@@ -179,9 +178,14 @@ jinzamomi.krkr.global.System = (function() {
      * @return {boolean}
      */
     createAppLock: function(key) {
-      console.warn("jinzamomi does not support app lock.");
-      return false;
+      if(this.appLock_[key]) {
+        return false;
+      } else {
+        this.appLock_[key] = true;
+        return true;
+      }
     },
+    appLock_: {},
     /**
      * UUID 文字列の生成
      * @return {string}

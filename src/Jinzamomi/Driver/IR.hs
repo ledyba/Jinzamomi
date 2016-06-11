@@ -227,7 +227,7 @@ compile' indent (Assign node1 node2) =
     T.concat [indent, compile' "" node1, " = (", compile' "" node2,")"]
 --
 compile' indent (Bin node1 op node2) =
-    T.concat [indent, compile' "" node1, " ", op, " ", compile' "" node2]
+    T.concat [indent, "(", compile' "" node1, " ", op, " ", compile' "" node2, ")"]
 --
 compile' indent (Tri cond t_ f_) =
     T.concat [indent, "(", compile' "" cond, ") ? (", compile' "" t_, ") : (", compile' "" f_, ")"]

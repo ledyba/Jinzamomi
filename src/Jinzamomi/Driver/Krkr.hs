@@ -17,8 +17,9 @@ import qualified Jinzamomi.Driver.Krkr.TJS2IR as TJS2IR
 import qualified Jinzamomi.Driver.Krkr.KAG2IR as KAG2IR
 import qualified Jinzamomi.Driver.IR as IR
 import Jinzamomi.Driver.Util
-import System.FilePath (dropFileName, takeExtension, (</>), (<.>))
-import System.Directory (createDirectoryIfMissing)
+import Control.Monad (filterM)
+import System.FilePath (dropFileName, takeExtension, (</>), (<.>), pathSeparator, makeRelative, normalise)
+import System.Directory (createDirectoryIfMissing, getDirectoryContents, doesFileExist, doesDirectoryExist)
 
 data Opt =
     Build String String
@@ -52,7 +53,7 @@ build :: FilePath -> FilePath -> IO ()
 build from to = do
     createDirectoryIfMissing True to
     files <- enumAllFiles from
-    outFileList files
+    outFileList from to from
     results <- mapM run files
     let errors = length (filter not results)
     if errors /= 0 then
@@ -60,7 +61,6 @@ build from to = do
     else
       return ()
   where
-    outFileList files = B.writeFile (to </> "files-list.json") (JSON.encode files)
     runTask path ext runner = do
       let inPath = from </> path
       content <- TIO.readFile inPath
@@ -81,6 +81,20 @@ build from to = do
       | otherwise = do
           warningM tag ("Unknown file type: " ++ path)
           return True
+--
+outFileList :: FilePath -> FilePath -> FilePath -> IO [FilePath]
+outFileList base to path = do
+  let normpath = normalise path
+  allItems <- getDirectoryContents path
+  let items = (\f -> path ++ pathSeparator:f) <$> filter (\k -> k /= "." && k /= "..") allItems
+  files <- filterM doesFileExist items
+  justFolders <- filterM doesDirectoryExist items
+  leftFiles <- mapM (outFileList base to) justFolders
+  let allFiles = files ++ concat leftFiles
+  let outDir = to </> makeRelative base path
+  createDirectoryIfMissing True outDir
+  B.writeFile (outDir </> "files-list.json") (JSON.encode (fmap (makeRelative path) allFiles))
+  return allFiles
 
 execute :: Opt -> IO ()
 execute (Build from to) = build from to
