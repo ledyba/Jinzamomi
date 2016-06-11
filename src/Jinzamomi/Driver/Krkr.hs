@@ -4,6 +4,8 @@ module Jinzamomi.Driver.Krkr (
   execute
 ) where
 
+import qualified Data.ByteString.Lazy as B
+import qualified Data.Aeson as JSON
 import qualified Text.Parsec.Error as P
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
@@ -40,7 +42,7 @@ compileTJS :: FilePath -> T.Text -> Either P.ParseError T.Text
 compileTJS filepath content = do
   ast <- TJS.parse filepath content
   return (IR.compile (TJS2IR.compileStmt ast))
---
+
 compileKAG :: FilePath -> T.Text -> Either P.ParseError T.Text
 compileKAG filepath content = do
   ast <- KAG.parse filepath content
@@ -50,6 +52,7 @@ build :: FilePath -> FilePath -> IO ()
 build from to = do
     createDirectoryIfMissing True to
     files <- enumAllFiles from
+    outFileList files
     results <- mapM run files
     let errors = length (filter not results)
     if errors /= 0 then
@@ -57,6 +60,7 @@ build from to = do
     else
       return ()
   where
+    outFileList files = B.writeFile (to </> "files-list.json") (JSON.encode files)
     runTask path ext runner = do
       let inPath = from </> path
       content <- TIO.readFile inPath

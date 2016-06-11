@@ -10,6 +10,7 @@ jinzamomi.krkr = (function() {
   krkr.main = function(path, args) {
     global.System.projectBase_ = path;
     global.System.args_ = args;
+    global.Storages.addAutoPath("");
     global.Scripts.execStorage("startup.tjs");
   };
   global.Window = {};
@@ -25,6 +26,26 @@ jinzamomi.krkr = (function() {
     }
     for(;!obj.hasOwnProperty(name);obj = obj.__proto__);
     return Object.getOwnPropertyDescriptor(obj, name);
+  };
+  global.GetJSON = function(url, clbk, err) {
+    var r = new XMLHttpRequest();
+    r.onreadystatechange = function() {
+      // readyState = 4(complete)
+      // status = httpresponseのこと
+      if(r.readyState == 4) {
+        if(r.status == 200) {
+          clbk(JSON.parse( r.responseText ));
+        }else{
+          if(err) {
+            err(r.status, r.responseText);
+          } else {
+            console.error(r.status, r.responseText);
+          }
+        }
+      }
+    };
+    r.open("GET", url, true);
+    r.send("");
   };
 
   return krkr;
