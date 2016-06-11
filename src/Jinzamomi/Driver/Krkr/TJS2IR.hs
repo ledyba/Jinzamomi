@@ -216,6 +216,17 @@ compileExpr' scope (Bin "\\" e1 e2 _) = do
   e1' <- compileExpr' scope e1
   e2' <- compileExpr' scope e2
   return (IR.Call (IR.Raw "Math.floor") [IR.Bin e1' "/" e2'])
+compileExpr' scope (Bin "<->" e1 e2 _) =
+  withTemp (\t1 -> do
+    r <- withTemp (\t2 -> do
+      e1' <- compileExpr' scope e1
+      e2' <- compileExpr' scope e2
+      return [
+        IR.Assign t1 e1',
+        IR.Assign t2 e2',
+        IR.Assign e1' t2,
+        IR.Assign e2' t1])
+    return [r])
 compileExpr' scope (Bin "if" v cond _) = do
   v' <- compileExpr' scope v
   cond' <- compileExpr' scope cond
