@@ -60,12 +60,35 @@ jinzamomi.krkr = (function() {
     r.open("GET", url, false);
     r.send("");
   };
-  global.__defineKlass = function(name, proto, exts){
-    var cstr = proto[name];
+  global.__defineKlass = function(name, proto_, exts){
+    var cstr = proto_[name];
     var f = function() {
       cstr.apply(this, arguments);
     };
-    f.prototype = proto;
+    if(exts.length > 0) {
+      var proto = {};
+      for(var i=0;i < exts.length; i++) {
+        var super_ = global[exts[i]];
+        if(!super_) {
+          console.error("Class not found:", exts[i]);
+          return null;
+        }
+        Object.assign(proto, super_.prototype);
+      }
+      Object.assign(proto, proto_);
+      if(exts.length === 1) {
+        var superName = exts[0];
+        var super_ = global[superName];
+        if(!super_) {
+          console.error("Class not found:", exts[i]);
+          return null;
+        }
+        proto["__super"] = super_.prototype;
+      }
+      f.prototype = proto;
+    } else {
+      f.prototype = proto_;
+    }
     return f;
   };
 
