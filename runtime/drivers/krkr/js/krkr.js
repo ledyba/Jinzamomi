@@ -70,7 +70,7 @@ jinzamomi.krkr = (function() {
       for(var i=0;i < exts.length; i++) {
         var super_ = global[exts[i]];
         if(!super_) {
-          console.error("Class not found:", exts[i]);
+          console.error("Class not found:", exts[i], "extended by",name);
           return null;
         }
         Object.assign(proto, super_.prototype);
@@ -80,7 +80,7 @@ jinzamomi.krkr = (function() {
         var superName = exts[0];
         var super_ = global[superName];
         if(!super_) {
-          console.error("Class not found:", exts[i]);
+          console.error("Class not found:", exts[i], "extended by",name);
           return null;
         }
         proto["__super"] = super_.prototype;
