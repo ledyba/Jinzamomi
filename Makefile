@@ -13,3 +13,4 @@ atom:
 
 serv:
 	python -m SimpleHTTPServer 3000
+	echo "http://localhost:3000/runtime/test/"
