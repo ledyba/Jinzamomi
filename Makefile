@@ -1,4 +1,4 @@
-.PHONY: build test atom serv
+.PHONY: build test atom code serv
 
 build:
 	stack build jinzamomi
@@ -10,6 +10,8 @@ test: build
 
 atom:
 	stack exec atom .
+code:
+	stack exec code .
 
 serv:
 	python -m SimpleHTTPServer 3000

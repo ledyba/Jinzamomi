@@ -1,0 +1,33 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Mocha Tests</title>
+  <link href="https://cdn.rawgit.com/mochajs/mocha/2.2.5/mocha.css" rel="stylesheet" />
+</head>
+<body>
+  <div id="mocha"></div>
+
+  <script src="https://cdn.rawgit.com/mochajs/mocha/2.2.5/mocha.js"></script>
+
+  <!-- base + krkr driver -->
+  <script src="../base/js/jinzamomi.js"></script>
+  <script src="../drivers/krkr/js/krkr.js"></script>
+  <!-- TJS2 class libs -->
+  <script src="../drivers/krkr/js/Exception.js"></script>
+  <script src="../drivers/krkr/js/Dictionary.js"></script>
+  <script src="../drivers/krkr/js/Array.js"></script>
+  <!-- Krkr2 class libs -->
+  <script src="../drivers/krkr/js/System.js"></script>
+  <script src="../drivers/krkr/js/Plugins.js"></script>
+  <script src="../drivers/krkr/js/Scripts.js"></script>
+  <script src="../drivers/krkr/js/Storages.js"></script>
+  <script src="../drivers/krkr/js/Debug.js"></script>
+
+  <script>mocha.setup('bdd')</script>
+  <script src="test.krkr.js"></script>
+  <script>
+    mocha.checkLeaks();
+    mocha.run();
+  </script>
+</body>
+</html>

@@ -9,11 +9,11 @@ var jinzamomi = (function() {
     prototype: Object.create(HTMLDivElement.prototype, {})
   });
 
-  jinzamomi.Layer = document.registerElement('jinzamomi-image', {
+  jinzamomi.Image = document.registerElement('jinzamomi-image', {
     prototype: Object.create(HTMLDivElement.prototype, {})
   });
 
-  jinzamomi.Layer = document.registerElement('jinzamomi-text', {
+  jinzamomi.Text = document.registerElement('jinzamomi-text', {
     prototype: Object.create(HTMLDivElement.prototype, {})
   });
 
