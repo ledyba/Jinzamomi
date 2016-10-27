@@ -7,6 +7,7 @@
 <body>
   <div id="mocha"></div>
 
+  <script src="https://cdn.rawgit.com/Automattic/expect.js/0.3.1/index.js"></script>
   <script src="https://cdn.rawgit.com/mochajs/mocha/2.2.5/mocha.js"></script>
 
   <!-- base + krkr driver -->
@@ -23,7 +24,9 @@
   <script src="../drivers/krkr/js/Storages.js"></script>
   <script src="../drivers/krkr/js/Debug.js"></script>
 
-  <script>mocha.setup('bdd')</script>
+  <script>
+    mocha.setup('bdd');
+  </script>
   <script src="test.krkr.js"></script>
   <script>
     mocha.checkLeaks();
