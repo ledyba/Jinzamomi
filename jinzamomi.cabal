@@ -3,7 +3,7 @@ version:             0.1.0.0
 synopsis:            Ahead of Time transpiler from Bishoujo-game to HTML5
 description:         Please see README.md
 homepage:            https://github.com/ledyba/jinzamomi#readme
-license:             GPL
+license:             AGPL-3.0-or-later
 license-file:        LICENSE
 author:              Author name here
 maintainer:          nasda60@hotmail.com
